@@ -6,6 +6,8 @@ import * as fs from 'fs';
 import { ConfigEnum } from '@/enum/config.enum';
 
 import { User } from '@/user/entities/user.entity';
+import { PageView } from '@/collect/entities/page-view.entity';
+import { Performance } from '@/collect/entities/performance.entity';
 
 // 通过环境变量读取不同的.env文件
 function getEnv(env: string): Record<string, any> {
@@ -28,7 +30,7 @@ function buildConnectionOptions(): TypeOrmModuleOptions {
     username: env[ConfigEnum.DB_USERNAME],
     password: env[ConfigEnum.DB_PASSWORD],
     database: env[ConfigEnum.DB_NAME],
-    entities: [User],
+    entities: [User, PageView, Performance],
     synchronize: false, // 注意:在生产环境中不要使用 synchronize: true
     migrations: [
       process.env.NODE_ENV === 'production'

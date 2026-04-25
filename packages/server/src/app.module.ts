@@ -13,6 +13,7 @@ import { connectionParams } from '../ormconfig';
 
 import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
+import { CollectModule } from './collect/collect.module';
 
 // console.log('NODE_ENV:', process.env.NODE_ENV);
 const envFilePath = `.env.${process.env.NODE_ENV || 'development'}`;
@@ -64,6 +65,7 @@ const envFilePath = `.env.${process.env.NODE_ENV || 'development'}`;
     }),
     UserModule,
     AuthModule,
+    CollectModule,
   ],
   controllers: [AppController],
   providers: [AppService],
