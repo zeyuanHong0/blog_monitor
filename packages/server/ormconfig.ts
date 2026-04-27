@@ -10,6 +10,8 @@ import { PageView } from '@/collect/entities/page-view.entity';
 import { Performance } from '@/collect/entities/performance.entity';
 import { MonitorError } from '@/collect/entities/error.entity';
 import { MonitorEvent } from '@/collect/entities/event.entity';
+import { Heartbeat } from '@/heartbeat/entities/heartbeat.entity';
+import { DailyStat } from '@/aggregate/entities/daily-stat.entity';
 
 // 通过环境变量读取不同的.env文件
 function getEnv(env: string): Record<string, any> {
@@ -32,7 +34,15 @@ function buildConnectionOptions(): TypeOrmModuleOptions {
     username: env[ConfigEnum.DB_USERNAME],
     password: env[ConfigEnum.DB_PASSWORD],
     database: env[ConfigEnum.DB_NAME],
-    entities: [User, PageView, Performance, MonitorError, MonitorEvent],
+    entities: [
+      User,
+      PageView,
+      Performance,
+      MonitorError,
+      MonitorEvent,
+      Heartbeat,
+      DailyStat,
+    ],
     synchronize: false, // 注意:在生产环境中不要使用 synchronize: true
     migrations: [
       process.env.NODE_ENV === 'production'
