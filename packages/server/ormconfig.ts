@@ -53,7 +53,10 @@ function buildConnectionOptions(): TypeOrmModuleOptions {
   };
 }
 
-export const connectionParams = buildConnectionOptions();
+export const connectionParams = {
+  ...buildConnectionOptions(),
+  migrations: [],
+};
 
 export default new DataSource({
   ...connectionParams,
