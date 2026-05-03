@@ -21,8 +21,8 @@ export class DailyStat {
   @Column('float', { default: 0, comment: '平均最大内容绘制时间 LCP' })
   avgLcp!: number;
 
-  @Column('float', { default: 0, comment: '平均首次输入延迟 FID' })
-  avgFid!: number;
+  @Column('float', { default: 0, comment: '平均交互到下一帧绘制延迟 inp' })
+  avgInp!: number;
 
   @Column('float', { default: 0, comment: '平均布局偏移 CLS' })
   avgCls!: number;

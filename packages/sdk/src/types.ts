@@ -40,7 +40,7 @@ export interface PerformanceData extends BaseReportData {
   type: ReportType.PERFORMANCE;
   fcp: number | null; // 页面第一次渲染出内容的时间
   lcp: number | null; // 最大内容块渲染完成的时间
-  fid: number | null; // 用户第一次交互到浏览器响应的延迟
+  inp: number | null; // 交互到下一帧绘制延迟
   cls: number | null; // 页面布局抖动的程度
   ttfb: number | null; // 服务器响应第一个字节的时间
 }

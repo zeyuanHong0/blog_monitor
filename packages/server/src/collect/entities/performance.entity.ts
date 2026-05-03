@@ -26,8 +26,8 @@ export class Performance {
   @Column('float', { nullable: true, comment: '最大内容绘制时间 LCP' })
   lcp!: number;
 
-  @Column('float', { nullable: true, comment: '首次输入延迟 FID' })
-  fid!: number;
+  @Column('float', { nullable: true, comment: '交互到下一帧绘制延迟 inp' })
+  inp!: number;
 
   @Column('float', { nullable: true, comment: '累计布局偏移 CLS' })
   cls!: number;
