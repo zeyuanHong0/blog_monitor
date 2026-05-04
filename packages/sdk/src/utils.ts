@@ -74,3 +74,13 @@ export const createBasedata = (ctx: MonitorContext) => {
     timestamp: Date.now(),
   };
 };
+
+/**
+ * 检查 PerformanceObserver 是否支持指定的 entry type
+ * @param entryType
+ * @returns 是否支持指定的 entry type
+ */
+export const isEntryTypeSupported = (entryType: string): boolean => {
+  if (typeof PerformanceObserver === "undefined") return false;
+  return PerformanceObserver.supportedEntryTypes?.includes(entryType) ?? false;
+};
