@@ -27,6 +27,15 @@ export class DailyStat {
   @Column('float', { default: 0, comment: '平均布局偏移 CLS' })
   avgCls!: number;
 
+  @Column({ default: 0, comment: '当日软导航次数' })
+  softNavCount!: number;
+
+  @Column('float', { default: 0, comment: '软导航平均LCP' })
+  avgSoftNavLcp!: number;
+
+  @Column('float', { default: 0, comment: '软导航平均耗时' })
+  avgSoftNavDuration!: number;
+
   @Column({ default: 0, comment: '总错误数' })
   errorCount!: number;
 
