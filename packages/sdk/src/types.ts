@@ -3,6 +3,7 @@ export interface MonitorConfig {
   appId: string; // 应用标识
   reportUrl: string; // 数据上报地址
   enablePerformance?: boolean; // 是否启用性能监控 默认true
+  enableSoftNavigation?: boolean; // 是否启用软导航监控 默认false
   enableError?: boolean; // 是否启用错误监控
   sampleRate?: number; // 采样率 0-1，默认 1.0
   maxBatchSize?: number; // 批量上报最大条数，默认 10
@@ -14,6 +15,7 @@ export interface MonitorConfig {
 export enum ReportType {
   PAGEVIEW = "pageview",
   PERFORMANCE = "performance",
+  SOFT_NAVIGATION = "soft_navigation",
   ERROR = "error",
   EVENT = "event",
 }
@@ -35,7 +37,7 @@ export interface PageViewData extends BaseReportData {
   title: string;
 }
 
-// 性能数据
+// hard-navigation性能数据
 export interface PerformanceData extends BaseReportData {
   type: ReportType.PERFORMANCE;
   fcp: number | null; // 页面第一次渲染出内容的时间
@@ -43,6 +45,16 @@ export interface PerformanceData extends BaseReportData {
   inp: number | null; // 交互到下一帧绘制延迟
   cls: number | null; // 页面布局抖动的程度
   ttfb: number | null; // 服务器响应第一个字节的时间
+}
+
+// soft-navigation数据
+export interface SoftNavigationData extends BaseReportData {
+  type: ReportType.SOFT_NAVIGATION;
+  fromUrl: string; // 导航来源 URL
+  lcp: number | null;
+  cls: number | null;
+  inp: number | null;
+  navigationDuration: number | null; // 路由切换耗时
 }
 
 // 错误类型枚举
@@ -75,7 +87,12 @@ export interface EventData extends BaseReportData {
   eventData: Record<string, any>;
 }
 
-export type ReportData = PageViewData | PerformanceData | ErrorData | EventData;
+export type ReportData =
+  | PageViewData
+  | PerformanceData
+  | SoftNavigationData
+  | ErrorData
+  | EventData;
 
 export interface IReporter {
   add(data: ReportData): void;

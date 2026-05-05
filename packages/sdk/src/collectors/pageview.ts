@@ -60,6 +60,11 @@ export class PageViewCollector {
       title,
     });
 
+    // 派发路由变化事件，通知 SoftNavigationCollector
+    window.dispatchEvent(new CustomEvent('__blog_monitor_route_change__', {
+      detail: { newUrl: url, oldUrl: this.lastReportedUrl }
+    }));
+
     this.referrerUrl = url;
     this.lastReportedUrl = url;
   }

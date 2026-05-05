@@ -7,6 +7,7 @@ import {
 import { Reporter } from "./reporter";
 import { PageViewCollector } from "./collectors/pageview";
 import { PerformanceCollector } from "./collectors/performance";
+import { SoftNavigationCollector } from "./collectors/soft-navigation";
 import { ErrorCollector } from "./collectors/error";
 import {
   generateSessionId,
@@ -55,6 +56,11 @@ class BlogMonitorCore {
     if (this.config.enablePerformance) {
       const performanceCollector = new PerformanceCollector(this.ctx);
       this.collectors.push(performanceCollector);
+    }
+
+    if (this.config.enableSoftNavigation) {
+      const softNavCollector = new SoftNavigationCollector(this.ctx);
+      this.collectors.push(softNavCollector);
     }
 
     if (this.config.enableError) {
