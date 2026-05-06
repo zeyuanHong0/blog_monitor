@@ -47,6 +47,14 @@ export class MonitorError {
   @Column({ nullable: true, comment: '资源加载失败的URL' })
   resourceUrl?: string;
 
+  @Column('json', { nullable: true, comment: '框架错误信息' })
+  framework?: {
+    name: 'react' | 'vue';
+    componentName?: string;
+    componentStack?: string;
+    hook?: string;
+  };
+
   @Column()
   url!: string;
 
