@@ -59,13 +59,22 @@ export interface SoftNavigationData extends BaseReportData {
 
 // 错误类型枚举
 export enum ErrorType {
-  JS = "js", // 原生运行时错误
+  JS = "js", // 同步运行时错误
   PROMISE = "promise", // 未捕获 Promise
-  REACT = "react", // React 组件错误
-  AJAX = "ajax", // 接口返回错误（4xx / 5xx）
-  NETWORK = "network", // 网络错误（断网 / timeout）
   RESOURCE = "resource", // 静态资源加载失败
-  CUSTOM = "custom", // 业务手动上报
+  AJAX = "ajax", // 有响应（4xx / 5xx）
+  NETWORK = "network", // 无响应（timeout / 断网）
+  FRAMEWORK = "framework", // 框架错误（React/Vue）
+  CUSTOM = "custom", // 手动上报
+  UNKNOWN = "unknown", // 未知错误
+}
+
+// 框架类型
+export interface Framework {
+  name: "react" | "vue";
+  componentName?: string;
+  componentStack?: string; // React
+  hook?: string; // Vue
 }
 
 // 错误数据
@@ -73,11 +82,12 @@ export interface ErrorData extends BaseReportData {
   type: ReportType.ERROR;
   errorType: ErrorType;
   message: string;
-  stack: string;
+  stack?: string;
   filename?: string;
   lineno?: number;
   colno?: number;
   resourceUrl?: string; // 资源加载失败时的 URL
+  framework?: Framework;
 }
 
 // 自定义事件数据

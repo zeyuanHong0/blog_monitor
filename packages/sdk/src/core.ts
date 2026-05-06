@@ -27,6 +27,7 @@ class BlogMonitorCore {
   private collectors: Collector[] = [];
   private ctx!: MonitorContext;
   private initialized = false;
+  private errorCollector: ErrorCollector | null = null;
 
   // 初始化
   init(config: MonitorConfig): void {
@@ -64,8 +65,8 @@ class BlogMonitorCore {
     }
 
     if (this.config.enableError) {
-      const errorCollector = new ErrorCollector(this.ctx);
-      this.collectors.push(errorCollector);
+      this.errorCollector = new ErrorCollector(this.ctx);
+      this.collectors.push(this.errorCollector);
     }
 
     this.collectors.forEach((collector) => collector.start());
@@ -82,6 +83,19 @@ class BlogMonitorCore {
       eventName,
       eventData: data || {},
     });
+  }
+
+  /**
+   * 手动上报自定义错误
+   */
+  reportError(error: Error | string, metadata?: Record<string, any>): void {
+    if (!this.initialized) {
+      console.warn("BlogMonitor 尚未初始化");
+      return;
+    }
+    if (this.errorCollector) {
+      this.errorCollector.reportError(error, metadata);
+    }
   }
 
   destroy(): void {
