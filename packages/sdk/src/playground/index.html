@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blog Monitor SDK Playground</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f5f7fa;
+      color: #333;
+      padding: 24px;
+      line-height: 1.6;
+    }
+
+    h1 {
+      font-size: 22px;
+      margin-bottom: 6px;
+    }
+
+    h2 {
+      font-size: 16px;
+      margin-bottom: 10px;
+      color: #555;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding: 16px 20px;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, .08);
+    }
+
+    .header-left {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .status-badge.active {
+      background: #e6f7ee;
+      color: #1a9d5a;
+    }
+
+    .status-badge.inactive {
+      background: #fce8e8;
+      color: #d04040;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 18px 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, .08);
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 7px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: opacity .15s;
+    }
+
+    .btn:hover {
+      opacity: .85;
+    }
+
+    .btn:active {
+      opacity: .7;
+    }
+
+    .btn-primary {
+      background: #4361ee;
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: #e9ecef;
+      color: #495057;
+    }
+
+    .btn-danger {
+      background: #ef476f;
+      color: #fff;
+    }
+
+    .btn-success {
+      background: #06d6a0;
+      color: #fff;
+    }
+
+    .btn-warn {
+      background: #ffd166;
+      color: #333;
+    }
+
+    .btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .current-url {
+      margin-top: 10px;
+      padding: 8px 12px;
+      background: #f0f2f5;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 13px;
+      word-break: break-all;
+    }
+
+    .perf-hint {
+      padding: 10px 14px;
+      background: #fff8e6;
+      border-left: 3px solid #ffc107;
+      border-radius: 4px;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+
+    .lcp-image {
+      display: block;
+      max-width: 100%;
+      height: 200px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin: 12px 0;
+      background: #ddd;
+    }
+
+    .log-area {
+      max-height: 420px;
+      overflow-y: auto;
+      background: #1e1e2e;
+      color: #cdd6f4;
+      border-radius: 8px;
+      padding: 14px;
+      font-family: "Fira Code", "Cascadia Code", Consolas, monospace;
+      font-size: 12.5px;
+      line-height: 1.55;
+    }
+
+    .log-entry {
+      margin-bottom: 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, .06);
+      padding-bottom: 10px;
+    }
+
+    .log-entry:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .log-time {
+      color: #89b4fa;
+      font-weight: 600;
+    }
+
+    .log-type {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-size: 11px;
+      font-weight: 700;
+      margin-left: 6px;
+    }
+
+    .log-type.pageview {
+      background: #a6e3a1;
+      color: #1e1e2e;
+    }
+
+    .log-type.performance {
+      background: #89b4fa;
+      color: #1e1e2e;
+    }
+
+    .log-type.error {
+      background: #f38ba8;
+      color: #1e1e2e;
+    }
+
+    .log-type.event {
+      background: #f9e2af;
+      color: #1e1e2e;
+    }
+
+    .log-type.soft_navigation {
+      background: #94e2d5;
+      color: #1e1e2e;
+    }
+
+    .soft-nav-content-area {
+      margin-top: 12px;
+      padding: 14px;
+      background: #f0f9f8;
+      border-radius: 8px;
+      border: 1px dashed #94e2d5;
+      min-height: 60px;
+    }
+
+    .soft-nav-content-area img {
+      display: block;
+      max-width: 100%;
+      height: 150px;
+      object-fit: cover;
+      border-radius: 8px;
+      background: #ddd;
+    }
+
+    .soft-nav-cls-box {
+      width: 200px;
+      height: 60px;
+      background: #2dd4bf;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      color: #fff;
+      font-weight: 600;
+      margin-top: 10px;
+    }
+
+    .soft-nav-info {
+      margin-top: 10px;
+      padding: 8px 12px;
+      background: #f0f2f5;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 13px;
+      word-break: break-all;
+    }
+
+    .log-json {
+      white-space: pre-wrap;
+      word-break: break-all;
+      margin-top: 4px;
+    }
+
+    .empty-log {
+      text-align: center;
+      color: #6c7086;
+      padding: 40px 0;
+      font-size: 13px;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-title span.icon {
+      font-size: 18px;
+    }
+
+    .version {
+      font-size: 12px;
+      color: #888;
+    }
+
+    .inp-btn {
+      padding: 14px 28px;
+      font-size: 15px;
+    }
+
+    .cls-box {
+      width: 200px;
+      height: 60px;
+      background: #c8b6ff;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      color: #333;
+      transition: margin-top .01s;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- 顶部状态栏 -->
+  <div class="header">
+    <div class="header-left">
+      <h1>Blog Monitor SDK Playground</h1>
+      <span class="version" id="sdkVersion">SDK 版本：加载中...</span>
+    </div>
+    <div class="header-right">
+      <span class="status-badge inactive" id="statusBadge">未初始化</span>
+      <button class="btn btn-success" id="btnInit" onclick="initSDK()">初始化 SDK</button>
+      <button class="btn btn-danger" id="btnDestroy" onclick="destroySDK()" disabled>销毁 SDK</button>
+    </div>
+  </div>
+
+  <!-- PageView 验证区域 -->
+  <div class="card">
+    <h2 class="section-title"><span class="icon">📄</span> PageViewCollector 验证</h2>
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="navPush('/page-a')">pushState → /page-a</button>
+      <button class="btn btn-primary" onclick="navPush('/page-b')">pushState → /page-b</button>
+      <button class="btn btn-secondary" onclick="navReplace('/page-c')">replaceState → /page-c</button>
+      <button class="btn btn-warn" onclick="navPush(location.pathname + location.search)">重复跳转当前 URL</button>
+      <button class="btn btn-secondary" onclick="history.back()">← 后退 (history.back)</button>
+    </div>
+    <div class="current-url">当前 URL：<span id="currentUrl"></span></div>
+  </div>
+
+  <!-- Performance 验证区域 -->
+  <div class="card">
+    <h2 class="section-title"><span class="icon">⚡</span> PerformanceCollector 验证</h2>
+    <div class="perf-hint">
+      <strong>提示：</strong>性能数据（FCP / LCP / INP / CLS / TTFB）会在<strong>页面隐藏</strong>时上报 —— 请切换到其他标签页再切回来查看日志。
+    </div>
+    <p style="font-size:13px;color:#666;margin-bottom:8px;">多次点击下方按钮可触发 INP（Interaction to Next Paint）指标采集，INP
+      会持续追踪所有交互并取最差值：</p>
+    <button class="btn btn-primary inp-btn" onclick="onInpClick()">👆 点击我触发交互（模拟 200ms 延迟）</button>
+    <p style="font-size:13px;color:#666;margin:12px 0 6px;">下方大图用于产生可观察的 LCP；延迟插入的色块用于制造 CLS：</p>
+    <img class="lcp-image" src="https://picsum.photos/seed/blogmonitor/800/200" alt="LCP 测试大图" />
+    <div id="clsContainer"></div>
+  </div>
+
+  <!-- Error 验证区域 -->
+  <div class="card">
+    <h2 class="section-title"><span class="icon">🚨</span> ErrorCollector 验证</h2>
+    <p style="font-size:13px;color:#666;margin-bottom:10px;">
+      点击下方按钮分别触发 JS 运行时错误、Promise 拒绝、资源加载失败，验证 ErrorCollector 能否正确捕获。
+    </p>
+    <div class="btn-group">
+      <button class="btn btn-danger" onclick="triggerJsError()">throw new Error()</button>
+      <button class="btn btn-danger" onclick="triggerPromiseReject()">Promise.reject()</button>
+      <button class="btn btn-danger" onclick="triggerResourceError()">img src="404"</button>
+    </div>
+    <div id="errorResourceContainer" style="margin-top:10px;"></div>
+  </div>
+
+  <!-- SoftNavigation 验证区域 -->
+  <div class="card">
+    <h2 class="section-title"><span class="icon">🔄</span> SoftNavigationCollector 验证</h2>
+    <p style="font-size:13px;color:#666;margin-bottom:6px;">
+      点击上方 PageView 区域的路由按钮触发软导航，每次路由切换后会自动注入新内容来触发 LCP/CLS 指标。
+    </p>
+    <p style="font-size:13px;color:#666;margin-bottom:10px;">
+      软导航数据在下次路由切换、标签页切换或销毁 SDK 时上报。
+    </p>
+    <div class="soft-nav-info">
+      <span>已触发 <strong id="softNavCount">0</strong> 次软导航</span>
+      <span style="margin-left:16px;" id="softNavRoute">等待路由切换...</span>
+    </div>
+    <div class="soft-nav-content-area" id="soft-nav-content">
+      <span style="color:#999;">等待路由切换...</span>
+    </div>
+  </div>
+
+  <!-- 上报日志区域 -->
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <h2 class="section-title" style="margin-bottom:0;"><span class="icon">📋</span> 上报日志</h2>
+      <button class="btn btn-secondary" onclick="clearLog()">清空日志</button>
+    </div>
+    <div class="log-area" id="logArea">
+      <div class="empty-log" id="emptyHint">暂无上报数据，初始化 SDK 后开始采集…</div>
+    </div>
+  </div>
+
+  <!-- 引入 SDK UMD 产物 -->
+  <script src="../../dist/index.js"></script>
+
+  <script>
+    // ========== 工具函数 ==========
+    var sdkInstance = null;
+
+    function $(id) { return document.getElementById(id); }
+
+    function now() {
+      var d = new Date();
+      return [
+        String(d.getHours()).padStart(2, '0'),
+        String(d.getMinutes()).padStart(2, '0'),
+        String(d.getSeconds()).padStart(2, '0'),
+      ].join(':') + '.' + String(d.getMilliseconds()).padStart(3, '0');
+    }
+
+    function refreshUrl() {
+      $('currentUrl').textContent = location.href;
+    }
+    refreshUrl();
+    window.addEventListener('popstate', refreshUrl);
+
+    // ========== 日志展示 ==========
+    function appendLog(data) {
+      var area = $('logArea');
+      var hint = $('emptyHint');
+      if (hint) hint.remove();
+
+      var entry = document.createElement('div');
+      entry.className = 'log-entry';
+
+      var typeName = data.type || 'unknown';
+      entry.innerHTML =
+        '<span class="log-time">' + now() + '</span>' +
+        '<span class="log-type ' + typeName + '">' + typeName.toUpperCase() + '</span>' +
+        '<div class="log-json">' + syntaxHighlight(JSON.stringify(data, null, 2)) + '</div>';
+
+      area.appendChild(entry);
+      area.scrollTop = area.scrollHeight;
+    }
+
+    function syntaxHighlight(json) {
+      return json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/("(\\u[\da-fA-F]{4}|\\[^u]|[^\\"])*"(\s*:)?)/g, function (match) {
+          var cls = 'color:#f9e2af'; // string
+          if (/:$/.test(match)) cls = 'color:#89dceb'; // key
+          return '<span style="' + cls + '">' + match + '</span>';
+        })
+        .replace(/\b(true|false)\b/g, '<span style="color:#a6e3a1">$1</span>')
+        .replace(/\b(null)\b/g, '<span style="color:#6c7086">$1</span>')
+        .replace(/\b(-?\d+\.?\d*)\b/g, '<span style="color:#fab387">$1</span>');
+    }
+
+    function clearLog() {
+      $('logArea').innerHTML = '<div class="empty-log" id="emptyHint">日志已清空</div>';
+    }
+
+    // ========== SDK 生命周期 ==========
+    function patchReporter(instance) {
+      // BlogMonitorCore 的 reporter 是私有属性，但 JS 运行时可直接访问
+      var reporter = instance.reporter;
+      if (!reporter) {
+        console.warn('[Playground] 无法访问 reporter，monkey-patch 失败');
+        return;
+      }
+      var originalAdd = reporter.add.bind(reporter);
+      reporter.add = function (data) {
+        console.log('[BlogMonitor 上报]', data);
+        appendLog(data);
+        originalAdd(data);
+      };
+    }
+
+    function updateStatus(active) {
+      var badge = $('statusBadge');
+      badge.textContent = active ? '已初始化' : '未初始化';
+      badge.className = 'status-badge ' + (active ? 'active' : 'inactive');
+      $('btnInit').disabled = active;
+      $('btnDestroy').disabled = !active;
+    }
+
+    function initSDK() {
+      if (typeof window.BlogMonitor === 'undefined') {
+        alert('SDK 未加载！请先执行 npm run build 生成 dist/index.js');
+        return;
+      }
+
+      sdkInstance = window.BlogMonitor.BlogMonitor;
+      $('sdkVersion').textContent = 'SDK 版本：v' + (window.BlogMonitor.version || '未知');
+
+      sdkInstance.init({
+        appId: 'playground-test',
+        reportUrl: '/api/report',  // 无实际后端，由 monkey-patch 拦截
+        enableSoftNavigation: true,
+      });
+
+      // monkey-patch reporter.add
+      patchReporter(sdkInstance);
+
+      // 挂到 window 方便调试
+      window.__blogMonitor = sdkInstance;
+
+      updateStatus(true);
+      refreshUrl(); // init 时会触发一次 pageview，刷新 URL 显示
+      console.log('[Playground] SDK 已初始化，可通过 window.__blogMonitor 调试');
+    }
+
+    function destroySDK() {
+      if (sdkInstance) {
+        sdkInstance.destroy();
+        sdkInstance = null;
+        updateStatus(false);
+        console.log('[Playground] SDK 已销毁');
+      }
+    }
+
+    // ========== PageView 导航 ==========
+    function navPush(path) {
+      history.pushState(null, '', path);
+      refreshUrl();
+    }
+
+    function navReplace(path) {
+      history.replaceState(null, '', path);
+      refreshUrl();
+    }
+
+    // ========== INP 触发 ==========
+    function onInpClick() {
+      // 阻塞主线程模拟慢交互，便于观察 INP 指标
+      var start = performance.now();
+      while (performance.now() - start < 200) { }
+      console.log('[Playground] 用户点击 → 模拟 200ms 慢交互，触发 INP 采集');
+    }
+
+    // ========== CLS 制造：延迟插入元素 ==========
+    setTimeout(function () {
+      var box = document.createElement('div');
+      box.className = 'cls-box';
+      box.textContent = '我是延迟插入的元素（制造 CLS）';
+      $('clsContainer').appendChild(box);
+    }, 1500);
+
+    // ========== 软导航验证：监听路由变化并注入内容 ==========
+    var softNavCounter = 0;
+
+    window.addEventListener('__blog_monitor_route_change__', function (e) {
+      softNavCounter++;
+      $('softNavCount').textContent = softNavCounter;
+
+      var detail = e.detail || {};
+      var from = detail.oldUrl || '(unknown)';
+      var to = detail.newUrl || '(unknown)';
+      $('softNavRoute').textContent = from + ' → ' + to;
+
+      // 清空旧内容
+      var container = $('soft-nav-content');
+      container.innerHTML = '';
+
+      // 1. 注入大图 → 触发软导航 LCP
+      var seed = Date.now();
+      var img = document.createElement('img');
+      img.src = 'https://picsum.photos/seed/' + seed + '/600/150';
+      img.alt = '软导航 LCP 测试图 #' + softNavCounter;
+      container.appendChild(img);
+
+      // 2. 延迟 800ms 插入色块 → 触发软导航 CLS
+      setTimeout(function () {
+        var clsBox = document.createElement('div');
+        clsBox.className = 'soft-nav-cls-box';
+        clsBox.textContent = 'CLS 触发元素 #' + softNavCounter;
+        container.appendChild(clsBox);
+      }, 800);
+
+      // 3. INP 按钮
+      var inpBtn = document.createElement('button');
+      inpBtn.className = 'btn btn-primary';
+      inpBtn.style.marginTop = '10px';
+      inpBtn.textContent = '👆 软导航交互测试（模拟 150ms 延迟）';
+      inpBtn.addEventListener('click', function () {
+        var start = performance.now();
+        while (performance.now() - start < 150) { }
+        console.log('[Playground] 软导航内 INP 交互 → 模拟 150ms 慢交互');
+      });
+      container.appendChild(inpBtn);
+    });
+
+    // ========== Error 触发 ==========
+    function triggerJsError() {
+      // 用 setTimeout 让错误变为异步，避免阻断当前执行上下文
+      setTimeout(function () {
+        throw new Error('Playground 手动触发的 JS 错误');
+      }, 0);
+    }
+
+    function triggerPromiseReject() {
+      Promise.reject(new Error('Playground 手动触发的 Promise 拒绝'));
+    }
+
+    function triggerResourceError() {
+      var img = document.createElement('img');
+      img.src = '/this-image-does-not-exist-404.png';
+      img.alt = '故意加载失败的图片';
+      img.style.width = '100px';
+      img.style.height = '60px';
+      img.style.background = '#fce8e8';
+      img.style.borderRadius = '6px';
+      $('errorResourceContainer').appendChild(img);
+    }
+
+    // ========== 页面加载完成后自动检测 SDK ==========
+    window.addEventListener('load', function () {
+      if (typeof window.BlogMonitor !== 'undefined') {
+        $('sdkVersion').textContent = 'SDK 版本：v' + (window.BlogMonitor.version || '未知');
+      } else {
+        $('sdkVersion').textContent = 'SDK 未加载 — 请先 build';
+      }
+    });
+  </script>
+</body>
+
+</html>
