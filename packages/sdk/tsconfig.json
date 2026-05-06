@@ -7,9 +7,11 @@
             "DOM.Iterable"
         ],
         "module": "ESNext",
+        "moduleResolution": "bundler",
         "declaration": true,
         "strict": true,
         "esModuleInterop": true,
+        "rootDir": "./src",
         "outDir": "dist"
     },
     "include": [
