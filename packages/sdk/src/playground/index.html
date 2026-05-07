@@ -371,6 +371,31 @@
     <div id="errorResourceContainer" style="margin-top:10px;"></div>
   </div>
 
+  <!-- EventCollector 验证区域 -->
+  <div class="card">
+    <h2 class="section-title"><span class="icon">🎯</span> EventCollector 验证 — 自定义事件手动上报</h2>
+    <p style="font-size:13px;color:#666;margin-bottom:10px;">
+      通过 <code>track(eventName, eventData)</code> 手动上报自定义事件，验证 EventCollector 是否正常工作。
+    </p>
+    <div style="margin-bottom:10px;">
+      <label style="font-size:13px;color:#555;display:block;margin-bottom:4px;">事件名称 (eventName)</label>
+      <input id="trackEventName" type="text" value="button_click" style="width:100%;max-width:320px;padding:7px 12px;border:1px solid #ddd;border-radius:6px;font-size:13px;" />
+    </div>
+    <div style="margin-bottom:10px;">
+      <label style="font-size:13px;color:#555;display:block;margin-bottom:4px;">事件数据 (eventData, JSON 格式)</label>
+      <textarea id="trackEventData" rows="3" style="width:100%;max-width:480px;padding:7px 12px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:monospace;resize:vertical;">{"page": "home", "action": "click"}</textarea>
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="trackCustomEvent()">上报事件</button>
+    </div>
+    <p style="font-size:13px;color:#666;margin-top:14px;margin-bottom:6px;">快捷上报（预设场景）：</p>
+    <div class="btn-group">
+      <button class="btn btn-success" onclick="trackPreset('button_click')">模拟按钮点击</button>
+      <button class="btn btn-warn" onclick="trackPreset('page_stay')">模拟页面停留</button>
+      <button class="btn btn-secondary" onclick="trackPreset('search')">模拟搜索</button>
+    </div>
+  </div>
+
   <!-- SoftNavigation 验证区域 -->
   <div class="card">
     <h2 class="section-title"><span class="icon">🔄</span> SoftNavigationCollector 验证</h2>
@@ -588,6 +613,44 @@
       });
       container.appendChild(inpBtn);
     });
+
+    // ========== 自定义事件上报 ==========
+    function trackCustomEvent() {
+      if (!window.__blogMonitor) {
+        alert('请先点击「初始化 SDK」按钮');
+        return;
+      }
+      var eventName = $('trackEventName').value.trim();
+      if (!eventName) {
+        alert('事件名称不能为空');
+        return;
+      }
+      var raw = $('trackEventData').value.trim();
+      var eventData;
+      try {
+        eventData = JSON.parse(raw);
+      } catch (e) {
+        alert('eventData 不是合法的 JSON，请检查格式。\n\n错误信息：' + e.message);
+        return;
+      }
+      window.__blogMonitor.track(eventName, eventData);
+      console.log('[Playground] track("' + eventName + '")', eventData);
+    }
+
+    function trackPreset(type) {
+      if (!window.__blogMonitor) {
+        alert('请先点击「初始化 SDK」按钮');
+        return;
+      }
+      var presets = {
+        'button_click': { buttonId: 'cta-signup', label: '立即注册' },
+        'page_stay': { duration: 30000, scrollDepth: 0.75 },
+        'search': { keyword: 'blog monitor', resultCount: 12 },
+      };
+      var data = presets[type];
+      window.__blogMonitor.track(type, data);
+      console.log('[Playground] track("' + type + '")', data);
+    }
 
     // ========== Error 触发 ==========
     function triggerJsError() {

@@ -9,6 +9,7 @@ import { PageViewCollector } from "./collectors/pageview";
 import { PerformanceCollector } from "./collectors/performance";
 import { SoftNavigationCollector } from "./collectors/soft-navigation";
 import { ErrorCollector } from "./collectors/error";
+import { EventCollector } from "./collectors/event";
 import {
   generateSessionId,
   getPageInfo,
@@ -28,6 +29,7 @@ class BlogMonitorCore {
   private ctx!: MonitorContext;
   private initialized = false;
   private errorCollector: ErrorCollector | null = null;
+  private eventCollector: EventCollector | null = null;
 
   // 初始化
   init(config: MonitorConfig): void {
@@ -69,6 +71,8 @@ class BlogMonitorCore {
       this.collectors.push(this.errorCollector);
     }
 
+    this.eventCollector = new EventCollector(this.ctx);
+
     this.collectors.forEach((collector) => collector.start());
 
     this.initialized = true;
@@ -76,13 +80,13 @@ class BlogMonitorCore {
 
   // 手动上报
   track(eventName: string, data?: Record<string, any>): void {
-    if (!this.initialized) return;
-    this.reporter.add({
-      type: ReportType.EVENT,
-      ...createBasedata(this.ctx),
-      eventName,
-      eventData: data || {},
-    });
+    if (!this.initialized) {
+      console.warn("BlogMonitor 尚未初始化");
+      return;
+    }
+    if (this.eventCollector) {
+      this.eventCollector.track(eventName, data);
+    }
   }
 
   /**
