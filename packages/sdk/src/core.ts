@@ -102,11 +102,11 @@ class BlogMonitorCore {
     }
   }
 
-  destroy(): void {
+  async destroy(): Promise<void> {
     if (!this.initialized) return;
     this.collectors.forEach((c) => c.stop());
     this.collectors = [];
-    this.reporter.destroy();
+    await this.reporter.destroy();
     this.initialized = false;
   }
 }
