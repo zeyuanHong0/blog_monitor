@@ -379,11 +379,14 @@
     </p>
     <div style="margin-bottom:10px;">
       <label style="font-size:13px;color:#555;display:block;margin-bottom:4px;">事件名称 (eventName)</label>
-      <input id="trackEventName" type="text" value="button_click" style="width:100%;max-width:320px;padding:7px 12px;border:1px solid #ddd;border-radius:6px;font-size:13px;" />
+      <input id="trackEventName" type="text" value="button_click"
+        style="width:100%;max-width:320px;padding:7px 12px;border:1px solid #ddd;border-radius:6px;font-size:13px;" />
     </div>
     <div style="margin-bottom:10px;">
       <label style="font-size:13px;color:#555;display:block;margin-bottom:4px;">事件数据 (eventData, JSON 格式)</label>
-      <textarea id="trackEventData" rows="3" style="width:100%;max-width:480px;padding:7px 12px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:monospace;resize:vertical;">{"page": "home", "action": "click"}</textarea>
+      <textarea id="trackEventData" rows="3"
+        style="width:100%;max-width:480px;padding:7px 12px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:monospace;resize:vertical;">{"page":
+        "home", "action": "click"}</textarea>
     </div>
     <div class="btn-group">
       <button class="btn btn-primary" onclick="trackCustomEvent()">上报事件</button>
@@ -519,7 +522,7 @@
 
       sdkInstance.init({
         appId: 'playground-test',
-        reportUrl: '/api/report',  // 无实际后端，由 monkey-patch 拦截
+        reportUrl: 'http://127.0.0.1:3006/api/collect/report',
         enableSoftNavigation: true,
       });
 
