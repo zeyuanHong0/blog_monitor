@@ -1,4 +1,6 @@
 import { ArrayMinSize, IsArray, IsNotEmpty, IsString } from 'class-validator';
+import { ReportData } from '@/collect/types';
+import { IsReportDataArray } from './validators/report-data-array.validator';
 
 export class ReportPayloadDto {
   @IsNotEmpty({ message: '上报应用ID不能为空' })
@@ -7,5 +9,6 @@ export class ReportPayloadDto {
 
   @IsArray({ message: '上报数据必须是数组' })
   @ArrayMinSize(1, { message: '上报数据不能为空' })
-  data!: unknown[];
+  @IsReportDataArray({ message: '上报数据结构不合法或 type 不受支持' })
+  data!: ReportData[];
 }
