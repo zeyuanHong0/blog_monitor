@@ -32,25 +32,25 @@ export class Performance {
   fromUrl!: string;
 
   @Column('float', { nullable: true, comment: '首次内容绘制时间 FCP' })
-  fcp!: number;
+  fcp!: number | null;
 
   @Column('float', { nullable: true, comment: '最大内容绘制时间 LCP' })
-  lcp!: number;
+  lcp!: number | null;
 
   @Column('float', { nullable: true, comment: '交互到下一帧绘制延迟 inp' })
-  inp!: number;
+  inp!: number | null;
 
   @Column('float', { nullable: true, comment: '累计布局偏移 CLS' })
-  cls!: number;
+  cls!: number | null;
 
   @Column('float', { nullable: true, comment: '首字节时间 TTFB' })
-  ttfb!: number;
+  ttfb!: number | null;
 
   @Column('float', {
     nullable: true,
     comment: '路由切换到内容就绪的耗时（首屏时为 null）',
   })
-  navigationDuration!: number;
+  navigationDuration!: number | null;
 
   @Column()
   sessionId!: string;
