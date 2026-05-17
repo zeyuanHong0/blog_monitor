@@ -10,4 +10,6 @@ export enum ConfigEnum {
 
   HTTP_PROXY_HOST = 'HTTP_PROXY_HOST',
   HTTP_PROXY_PORT = 'HTTP_PROXY_PORT',
+
+  TARGET_URL = 'TARGET_URL',
 }

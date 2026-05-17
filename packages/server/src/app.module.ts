@@ -4,6 +4,7 @@ import * as dotenv from 'dotenv';
 import * as Joi from 'joi';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LoggerModule } from 'nestjs-pino';
+import { ScheduleModule } from '@nestjs/schedule';
 import { join } from 'path';
 
 import { AppController } from './app.controller';
@@ -66,6 +67,7 @@ const envFilePath = `.env.${process.env.NODE_ENV || 'development'}`;
               },
       },
     }),
+    ScheduleModule.forRoot(),
     UserModule,
     AuthModule,
     CollectModule,
