@@ -1,17 +1,27 @@
 import { Injectable } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { DailyStat } from './entities/daily-stat.entity';
 import { PageView } from '@/collect/entities/page-view.entity';
 import { Performance } from '@/collect/entities/performance.entity';
 import { MonitorError } from '@/collect/entities/error.entity';
 import { ErrorType } from '@/enum/errorType.enum';
+import dayjs from '@/common/dayjs.config';
 
 @Injectable()
 export class AggregateService {
   constructor(
+    @InjectPinoLogger(AggregateService.name)
+    private readonly logger: PinoLogger,
+    @InjectRepository(DailyStat)
     private dailyStatRepository: Repository<DailyStat>,
+    @InjectRepository(PageView)
     private pageViewRepository: Repository<PageView>,
+    @InjectRepository(Performance)
     private performanceRepository: Repository<Performance>,
+    @InjectRepository(MonitorError)
     private errorRepository: Repository<MonitorError>,
   ) {}
 
@@ -138,5 +148,41 @@ export class AggregateService {
       .getRawMany<{ referrer: string; count: string }>();
 
     return rows.map((r) => ({ referrer: r.referrer, count: Number(r.count) }));
+  }
+
+  /**
+   * 每天凌晨 1:00 执行，聚合昨日数据写入 daily_stats
+   * 也可手动传入 dateStr（YYYY-MM-DD）触发指定日期的回填
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_1AM)
+  async aggregateDaily(dateStr?: string): Promise<void> {
+    const date = dateStr ?? dayjs().subtract(1, 'day').format('YYYY-MM-DD');
+
+    this.logger.info(`开始聚合 ${date} 的统计数据`);
+
+    // 顺序执行
+    const pvUv = await this.aggregatePvUv(date);
+    const performance = await this.aggregatePerformance(date);
+    const softNav = await this.aggregateSoftNav(date);
+    const errors = await this.aggregateErrors(date);
+    const topPages = await this.aggregateTopPages(date);
+    const topReferrers = await this.aggregateTopReferrers(date);
+
+    await this.dailyStatRepository.upsert(
+      {
+        date,
+        ...pvUv,
+        ...performance,
+        ...softNav,
+        ...errors,
+        topPages,
+        topReferrers,
+      },
+      ['date'],
+    );
+
+    this.logger.info(
+      `${date} 聚合完成：PV=${pvUv.pv} UV=${pvUv.uv} 错误数=${errors.errorCount}`,
+    );
   }
 }
