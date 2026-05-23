@@ -6,7 +6,7 @@ import { PageView } from '@/collect/entities/page-view.entity';
 import { Performance } from '@/collect/entities/performance.entity';
 import { MonitorError } from '@/collect/entities/error.entity';
 import { Heartbeat } from '@/heartbeat/entities/heartbeat.entity';
-import { QueryDto } from './dto/query.dto';
+import { DashboardQueryDto } from './dto/query.dto';
 import dayjs from '@/common/dayjs.config';
 
 @Injectable()
@@ -121,6 +121,113 @@ export class DashboardService {
       trend,
       uptime,
       latestErrors,
+    };
+  }
+
+  async getTraffic(query: DashboardQueryDto) {
+    const { start, end } = this.getDateRange(query);
+
+    const [trend, topPages, referrerDistribution] = await Promise.all([
+      // PV/UV 趋势（来自 daily_stats）
+      this.dailyStatRepository
+        .createQueryBuilder('ds')
+        .select(['ds.date', 'ds.pv', 'ds.uv'])
+        .where('ds.date >= :start AND ds.date <= :end', { start, end })
+        .orderBy('ds.date', 'ASC')
+        .getMany(),
+
+      // 页面 Top10（来自 page_views 分组）
+      this.pageViewRepository
+        .createQueryBuilder('pv')
+        .select('pv.url', 'url')
+        .addSelect('COUNT(*)', 'count')
+        .where(
+          'DATE(pv.createTime) >= :start AND DATE(pv.createTime) <= :end',
+          { start, end },
+        )
+        .groupBy('pv.url')
+        .orderBy('count', 'DESC')
+        .limit(10)
+        .getRawMany<{ url: string; count: string }>(),
+
+      // 来源分布（来自 page_views 分组）
+      this.pageViewRepository
+        .createQueryBuilder('pv')
+        .select('pv.referrer', 'referrer')
+        .addSelect('COUNT(*)', 'count')
+        .where(
+          "DATE(pv.createTime) >= :start AND DATE(pv.createTime) <= :end AND pv.referrer IS NOT NULL AND pv.referrer != ''",
+          { start, end },
+        )
+        .groupBy('pv.referrer')
+        .orderBy('count', 'DESC')
+        .limit(10)
+        .getRawMany<{ referrer: string; count: string }>(),
+    ]);
+
+    return {
+      trend,
+      topPages: topPages.map((r) => ({ url: r.url, count: Number(r.count) })),
+      referrerDistribution: referrerDistribution.map((r) => ({
+        referrer: r.referrer,
+        count: Number(r.count),
+      })),
+    };
+  }
+
+  async getPerformance(query: DashboardQueryDto) {
+    const { start, end } = this.getDateRange(query);
+
+    const [trend, slowPages] = await Promise.all([
+      // 性能指标趋势
+      this.dailyStatRepository
+        .createQueryBuilder('ds')
+        .select([
+          'ds.date',
+          'ds.avgFcp',
+          'ds.avgLcp',
+          'ds.avgInp',
+          'ds.avgCls',
+          'ds.avgSoftNavLcp',
+          'ds.avgSoftNavDuration',
+        ])
+        .where('ds.date >= :start AND ds.date <= :end', { start, end })
+        .orderBy('ds.date', 'ASC')
+        .getMany(),
+
+      // 慢页面排行
+      this.performanceRepository
+        .createQueryBuilder('perf')
+        .select('perf.url', 'url')
+        .addSelect('AVG(perf.lcp)', 'avgLcp')
+        .addSelect('AVG(perf.fcp)', 'avgFcp')
+        .addSelect('AVG(perf.inp)', 'avgInp')
+        .addSelect('COUNT(*)', 'sampleCount')
+        .where(
+          'DATE(perf.createTime) >= :start AND DATE(perf.createTime) <= :end AND perf.lcp IS NOT NULL',
+          { start, end },
+        )
+        .groupBy('perf.url')
+        .orderBy('avgLcp', 'DESC')
+        .limit(10)
+        .getRawMany<{
+          url: string;
+          avgLcp: string;
+          avgFcp: string;
+          avgInp: string;
+          sampleCount: string;
+        }>(),
+    ]);
+
+    return {
+      trend,
+      slowPages: slowPages.map((r) => ({
+        url: r.url,
+        avgLcp: r.avgLcp !== null ? Math.round(Number(r.avgLcp)) : null,
+        avgFcp: r.avgFcp !== null ? Math.round(Number(r.avgFcp)) : null,
+        avgInp: r.avgInp !== null ? Math.round(Number(r.avgInp)) : null,
+        sampleCount: Number(r.sampleCount),
+      })),
     };
   }
 }

@@ -1,6 +1,6 @@
 import { IsString, IsOptional, IsIn } from 'class-validator';
 
-export class QueryDto {
+export class DashboardQueryDto {
   @IsString()
   @IsOptional()
   startDate?: string;
