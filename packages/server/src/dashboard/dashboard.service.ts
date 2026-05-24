@@ -24,7 +24,10 @@ export class DashboardService {
     private heartbeatRepository: Repository<Heartbeat>,
   ) {}
 
-  private getDateRange(query: QueryDto): { start: string; end: string } {
+  private getDateRange(query: DashboardQueryDto): {
+    start: string;
+    end: string;
+  } {
     const end = query.endDate ?? dayjs().format('YYYY-MM-DD');
     const start =
       query.startDate ?? dayjs().subtract(6, 'day').format('YYYY-MM-DD');
@@ -172,6 +175,132 @@ export class DashboardService {
         referrer: r.referrer,
         count: Number(r.count),
       })),
+    };
+  }
+
+  async getErrors(query: DashboardQueryDto) {
+    const { start, end } = this.getDateRange(query);
+
+    const [trend, list] = await Promise.all([
+      // 错误趋势（来自 daily_stats）
+      this.dailyStatRepository
+        .createQueryBuilder('ds')
+        .select([
+          'ds.date',
+          'ds.errorCount',
+          'ds.jsErrorCount',
+          'ds.promiseErrorCount',
+          'ds.resourceErrorCount',
+        ])
+        .where('ds.date >= :start AND ds.date <= :end', { start, end })
+        .orderBy('ds.date', 'ASC')
+        .getMany(),
+
+      // 错误列表（按 message 分组，COUNT + MAX(createTime)）
+      this.errorRepository
+        .createQueryBuilder('err')
+        .select('err.message', 'message')
+        .addSelect('err.errorType', 'errorType')
+        .addSelect('COUNT(*)', 'count')
+        .addSelect('MAX(err.createTime)', 'lastSeen')
+        .where(
+          'DATE(err.createTime) >= :start AND DATE(err.createTime) <= :end',
+          { start, end },
+        )
+        .groupBy('err.message')
+        .addGroupBy('err.errorType')
+        .orderBy('count', 'DESC')
+        .limit(50)
+        .getRawMany<{
+          message: string;
+          errorType: string;
+          count: string;
+          lastSeen: string;
+        }>(),
+    ]);
+
+    return {
+      trend,
+      list: list.map((r) => ({
+        message: r.message,
+        errorType: r.errorType,
+        count: Number(r.count),
+        lastSeen: r.lastSeen,
+      })),
+    };
+  }
+
+  async getErrorDetail(id: string) {
+    return this.errorRepository.findOneBy({ id });
+  }
+
+  async getUptime(query: DashboardQueryDto) {
+    const { start, end } = this.getDateRange(query);
+
+    const since = dayjs(start).toDate();
+    const until = dayjs(end).endOf('day').toDate();
+
+    const [uptime24h, responseTrend, sslExpiry, failureRecords] =
+      await Promise.all([
+        // 可用率（近 24 小时）
+        this.calculateUptime(24),
+
+        // 响应时间趋势（按小时分组 AVG）
+        this.heartbeatRepository
+          .createQueryBuilder('hb')
+          .select("DATE_FORMAT(hb.checkTime, '%Y-%m-%d %H:00:00')", 'hour')
+          .addSelect('AVG(hb.responseTime)', 'avgResponseTime')
+          .addSelect('COUNT(*)', 'checkCount')
+          .where('hb.checkTime >= :since AND hb.checkTime <= :until', {
+            since,
+            until,
+          })
+          .groupBy('hour')
+          .orderBy('hour', 'ASC')
+          .getRawMany<{
+            hour: string;
+            avgResponseTime: string;
+            checkCount: string;
+          }>(),
+
+        // 最新 SSL 到期时间
+        this.heartbeatRepository
+          .createQueryBuilder('hb')
+          .select('hb.sslExpiry', 'sslExpiry')
+          .where('hb.sslExpiry IS NOT NULL')
+          .orderBy('hb.checkTime', 'DESC')
+          .limit(1)
+          .getRawOne<{ sslExpiry: string | null }>(),
+
+        // 故障记录（isUp=false 的最近 20 条）
+        this.heartbeatRepository
+          .createQueryBuilder('hb')
+          .select([
+            'hb.id',
+            'hb.targetUrl',
+            'hb.statusCode',
+            'hb.responseTime',
+            'hb.errorMessage',
+            'hb.checkTime',
+          ])
+          .where('hb.isUp = :isUp', { isUp: false })
+          .orderBy('hb.checkTime', 'DESC')
+          .limit(20)
+          .getMany(),
+      ]);
+
+    return {
+      uptime24h,
+      responseTrend: responseTrend.map((r) => ({
+        hour: r.hour,
+        avgResponseTime:
+          r.avgResponseTime !== null
+            ? Math.round(Number(r.avgResponseTime))
+            : null,
+        checkCount: Number(r.checkCount),
+      })),
+      sslExpiry: sslExpiry?.sslExpiry ?? null,
+      failureRecords,
     };
   }
 
