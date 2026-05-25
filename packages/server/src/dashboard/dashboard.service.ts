@@ -116,14 +116,16 @@ export class DashboardService {
       ]);
 
     return {
-      today: {
-        pv: Number(todayPvUv?.pv ?? 0),
-        uv: Number(todayPvUv?.uv ?? 0),
-        errorCount: todayErrors,
+      data: {
+        today: {
+          pv: Number(todayPvUv?.pv ?? 0),
+          uv: Number(todayPvUv?.uv ?? 0),
+          errorCount: todayErrors,
+        },
+        trend,
+        uptime,
+        latestErrors,
       },
-      trend,
-      uptime,
-      latestErrors,
     };
   }
 
@@ -169,12 +171,14 @@ export class DashboardService {
     ]);
 
     return {
-      trend,
-      topPages: topPages.map((r) => ({ url: r.url, count: Number(r.count) })),
-      referrerDistribution: referrerDistribution.map((r) => ({
-        referrer: r.referrer,
-        count: Number(r.count),
-      })),
+      data: {
+        trend,
+        topPages: topPages.map((r) => ({ url: r.url, count: Number(r.count) })),
+        referrerDistribution: referrerDistribution.map((r) => ({
+          referrer: r.referrer,
+          count: Number(r.count),
+        })),
+      },
     };
   }
 
@@ -220,13 +224,15 @@ export class DashboardService {
     ]);
 
     return {
-      trend,
-      list: list.map((r) => ({
-        message: r.message,
-        errorType: r.errorType,
-        count: Number(r.count),
-        lastSeen: r.lastSeen,
-      })),
+      data: {
+        trend,
+        list: list.map((r) => ({
+          message: r.message,
+          errorType: r.errorType,
+          count: Number(r.count),
+          lastSeen: r.lastSeen,
+        })),
+      },
     };
   }
 
@@ -290,17 +296,19 @@ export class DashboardService {
       ]);
 
     return {
-      uptime24h,
-      responseTrend: responseTrend.map((r) => ({
-        hour: r.hour,
-        avgResponseTime:
-          r.avgResponseTime !== null
-            ? Math.round(Number(r.avgResponseTime))
-            : null,
-        checkCount: Number(r.checkCount),
-      })),
-      sslExpiry: sslExpiry?.sslExpiry ?? null,
-      failureRecords,
+      data: {
+        uptime24h,
+        responseTrend: responseTrend.map((r) => ({
+          hour: r.hour,
+          avgResponseTime:
+            r.avgResponseTime !== null
+              ? Math.round(Number(r.avgResponseTime))
+              : null,
+          checkCount: Number(r.checkCount),
+        })),
+        sslExpiry: sslExpiry?.sslExpiry ?? null,
+        failureRecords,
+      },
     };
   }
 
@@ -349,14 +357,16 @@ export class DashboardService {
     ]);
 
     return {
-      trend,
-      slowPages: slowPages.map((r) => ({
-        url: r.url,
-        avgLcp: r.avgLcp !== null ? Math.round(Number(r.avgLcp)) : null,
-        avgFcp: r.avgFcp !== null ? Math.round(Number(r.avgFcp)) : null,
-        avgInp: r.avgInp !== null ? Math.round(Number(r.avgInp)) : null,
-        sampleCount: Number(r.sampleCount),
-      })),
+      data: {
+        trend,
+        slowPages: slowPages.map((r) => ({
+          url: r.url,
+          avgLcp: r.avgLcp !== null ? Math.round(Number(r.avgLcp)) : null,
+          avgFcp: r.avgFcp !== null ? Math.round(Number(r.avgFcp)) : null,
+          avgInp: r.avgInp !== null ? Math.round(Number(r.avgInp)) : null,
+          sampleCount: Number(r.sampleCount),
+        })),
+      },
     };
   }
 }
