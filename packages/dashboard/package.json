@@ -4,14 +4,22 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --open",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
+    "antd": "^6.4.3",
+    "axios": "^1.16.1",
+    "classnames": "^2.5.1",
+    "dayjs": "^1.11.20",
+    "echarts": "^6.1.0",
     "react": "^19.2.5",
-    "react-dom": "^19.2.5"
+    "react-dom": "^19.2.5",
+    "react-router-dom": "^7.15.1",
+    "sass": "^1.100.0",
+    "styled-components": "^6.4.2"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
