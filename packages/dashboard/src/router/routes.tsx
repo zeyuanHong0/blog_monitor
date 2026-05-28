@@ -1,4 +1,5 @@
 import { Navigate } from "react-router-dom";
+import Login from "@/pages/login/index";
 import Overview from "@/pages/overview";
 import Traffic from "@/pages/traffic";
 import Performance from "@/pages/performance";
@@ -11,6 +12,10 @@ const routes = [
   {
     path: "/",
     element: <Navigate to="/overview" replace />,
+  },
+  {
+    path: "/login",
+    element: <Login />,
   },
   {
     path: "/overview",
