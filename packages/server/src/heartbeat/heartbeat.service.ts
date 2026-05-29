@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+// import { Cron, CronExpression } from '@nestjs/schedule';
 import { Repository } from 'typeorm';
 import * as https from 'https';
 import * as http from 'http';
@@ -23,7 +23,7 @@ export class HeartbeatService {
     ) as string;
   }
 
-  @Cron(CronExpression.EVERY_5_MINUTES)
+  // @Cron(CronExpression.EVERY_5_MINUTES)
   async checkHealth() {
     const startTime = Date.now();
 

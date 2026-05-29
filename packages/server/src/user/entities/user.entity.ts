@@ -11,20 +11,20 @@ import { Role } from '@/enum/role.enum';
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ unique: true })
-  username: string;
+  username!: string;
 
   @Column({ nullable: true })
-  password: string;
+  password!: string;
 
   @Column({ default: Role.TOURIST })
-  accountType: Role;
+  accountType!: Role;
 
   @CreateDateColumn({ type: 'datetime' })
-  createTime: Date;
+  createTime!: Date;
 
   @UpdateDateColumn({ type: 'datetime' })
-  updateTime: Date;
+  updateTime!: Date;
 }
