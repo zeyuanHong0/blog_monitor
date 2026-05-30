@@ -7,6 +7,7 @@ import Errors from "@/pages/errors";
 import ErrorDetail from "@/pages/errors/detail";
 import Uptime from "@/pages/uptime";
 import NotFound from "@/pages/notFound";
+import AuthGuard from "./AuthGuard";
 
 const routes = [
   {
@@ -19,27 +20,27 @@ const routes = [
   },
   {
     path: "/overview",
-    element: <Overview />,
+    element: <AuthGuard><Overview /></AuthGuard>,
   },
   {
     path: "/traffic",
-    element: <Traffic />,
+    element: <AuthGuard><Traffic /></AuthGuard>,
   },
   {
     path: "/performance",
-    element: <Performance />,
+    element: <AuthGuard><Performance /></AuthGuard>,
   },
   {
     path: "/errors",
-    element: <Errors />,
+    element: <AuthGuard><Errors /></AuthGuard>,
   },
   {
     path: "/errors/:id",
-    element: <ErrorDetail />,
+    element: <AuthGuard><ErrorDetail /></AuthGuard>,
   },
   {
     path: "/uptime",
-    element: <Uptime />,
+    element: <AuthGuard><Uptime /></AuthGuard>,
   },
   {
     path: "*",

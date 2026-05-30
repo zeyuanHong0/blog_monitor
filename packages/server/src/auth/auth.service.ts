@@ -33,7 +33,7 @@ export class AuthService {
   }
 
   async signin(data: SigninUserDto, res: Response) {
-    const { username, password } = data;
+    const { username, password, remember } = data;
     const user = await this.validateUser(username, password);
     if (!user) {
       throw new HttpException('用户名或密码错误', HttpStatus.BAD_REQUEST);
@@ -49,14 +49,11 @@ export class AuthService {
       sameSite: 'lax', // 允许同站导航携带 Cookie
       path: '/', // 确保在所有路径下都可用
       domain: '', // 明确设置为当前域名
-      maxAge: 24 * 60 * 60 * 1000, // 1天
+      ...(remember ? { maxAge: 7 * 24 * 60 * 60 * 1000 } : {}),
     });
 
     return {
       message: '登录成功',
-      data: {
-        token,
-      },
     };
   }
 
@@ -70,7 +67,7 @@ export class AuthService {
       domain: '',
     });
     return {
-      msg: '登出成功',
+      message: '登出成功',
     };
   }
 }

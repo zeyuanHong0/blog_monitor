@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class SigninUserDto {
   @IsNotEmpty({ message: '用户名不能为空' })
@@ -6,5 +6,9 @@ export class SigninUserDto {
   username!: string;
 
   @IsNotEmpty({ message: '密码不能为空' })
+  @IsString({ message: '密码必须是字符串' })
   password!: string;
+
+  @IsOptional()
+  remember?: boolean;
 }
