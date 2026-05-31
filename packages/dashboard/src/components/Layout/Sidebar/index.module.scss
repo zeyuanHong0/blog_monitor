@@ -1,0 +1,67 @@
+// 折叠态下 Menu 弹出层可以溢出 Sider 边界
+:global(.ant-layout-sider-collapsed) > :global(.ant-layout-sider-children) {
+  overflow: visible !important;
+}
+
+.brand {
+  min-height: 56px;
+  flex-shrink: 0;
+}
+
+.brandName {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+// hover 时 logo 淡出、展开按钮淡入
+.collapsedBrand {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  transition: background-color 0.2s ease;
+
+  &:hover,
+  &:focus-within {
+    background-color: rgba(0, 0, 0, 0.04);
+
+    .collapsedBrandLogo {
+      opacity: 0;
+    }
+
+    .collapsedBrandToggle {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+}
+
+.collapsedBrandLogo,
+.collapsedBrandToggle {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s ease;
+}
+
+.collapsedBrandLogo {
+  opacity: 1;
+  pointer-events: none;
+}
+
+.collapsedBrandToggle {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.collapsedBrandBtn {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}

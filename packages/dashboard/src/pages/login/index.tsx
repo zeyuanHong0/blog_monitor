@@ -1,7 +1,6 @@
 import styles from "./index.module.scss";
 import type { CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
-import type { FormProps } from "antd";
 import { Card, Button, Checkbox, Form, Input, message } from "antd";
 
 import { AuroraBackground } from "@/components/AuroraBackground";
@@ -33,8 +32,7 @@ const Login = () => {
     boxShadow: token.boxShadow,
     ["--login-card-fallback-bg" as string]: token.colorBgElevated,
   };
-  const onFinish: FormProps<FieldType>["onFinish"] = async (values) => {
-    console.log("Success:", values);
+  const onFinish = async (values: FieldType) => {
     try {
       await userLogin(values);
       await getUserInfo();
@@ -44,11 +42,6 @@ const Login = () => {
     }
   };
 
-  const onFinishFailed: FormProps<FieldType>["onFinishFailed"] = (
-    errorInfo,
-  ) => {
-    console.log("Failed:", errorInfo);
-  };
   return (
     <>
       {contextHolder}
@@ -70,7 +63,6 @@ const Login = () => {
             requiredMark={false}
             initialValues={{ remember: true }}
             onFinish={onFinish}
-            onFinishFailed={onFinishFailed}
             autoComplete="off"
           >
             <Form.Item<FieldType>

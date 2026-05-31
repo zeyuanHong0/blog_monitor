@@ -11,7 +11,21 @@ export default function AntdConfig({ children }: Props) {
     <ConfigProvider
       locale={zhCN}
       theme={{
-        components: {},
+        token: {
+          colorBgLayout: "#ffffff",
+        },
+        components: {
+          Menu: {
+            itemSelectedBg: "rgba(0, 0, 0, 0.06)",
+            itemSelectedColor: "rgba(0, 0, 0, 0.88)",
+            subMenuItemSelectedColor: "rgba(0, 0, 0, 0.88)",
+            itemHoverBg: "rgba(0, 0, 0, 0.04)",
+            itemHoverColor: "rgba(0, 0, 0, 0.88)",
+            itemActiveBg: "rgba(0, 0, 0, 0.08)",
+            itemBorderRadius: 6,
+            itemMarginInline: 8,
+          },
+        },
       }}
     >
       {/* https://ant.design/docs/react/compatible-style-cn#styleprovider */}
