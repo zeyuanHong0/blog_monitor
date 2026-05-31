@@ -7,7 +7,7 @@ import AntdConfig from "@/theme/antd";
 function App() {
   return (
     <AntdConfig>
-      <AntdApp>
+      <AntdApp style={{ height: "100%" }}>
         <RouterProvider router={router} />
       </AntdApp>
     </AntdConfig>
