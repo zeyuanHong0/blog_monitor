@@ -1,39 +1,52 @@
 import React from "react";
+import { theme } from "antd";
 
 import styles from "./index.module.scss";
-import { accentColorMap, trendColorMap } from "@/constants/colors";
-import type { CardType, TrendType } from "@/constants/colors";
 
 interface StatCardProps {
   title: string;
   value: string | number;
-  type: CardType;
+  icon?: React.ReactNode;
   trend?: {
     text: string;
-    type: TrendType;
   };
 }
 
 const StatCard: React.FC<StatCardProps> = (props) => {
-  const { title, value, trend, type } = props;
+  const { title, value, icon, trend } = props;
+  const { token } = theme.useToken();
   return (
-    <div className={styles.statCard}>
-      <div
-        className={styles.line}
-        style={{ backgroundColor: accentColorMap[type] }}
-      ></div>
-      <div className={styles.content}>
-        <div className={styles.title}>{title}</div>
-        <div className={styles.value}>{value}</div>
-        {trend && (
-          <div
-            className={styles.trend}
-            style={{ color: trendColorMap[trend.type] }}
+    <div
+      className={styles.statCard}
+      style={{
+        backgroundColor: token.colorBgContainer,
+        borderColor: token.colorBorderSecondary,
+      }}
+    >
+      <div className={styles.header}>
+        <span className={styles.title} style={{ color: token.colorText }}>
+          {title}
+        </span>
+        {icon && (
+          <span
+            className={styles.icon}
+            style={{ color: token.colorTextSecondary }}
           >
-            {trend.text}
-          </div>
+            {icon}
+          </span>
         )}
       </div>
+      <div className={styles.value} style={{ color: token.colorText }}>
+        {value}
+      </div>
+      {trend && (
+        <div
+          className={styles.trend}
+          style={{ color: token.colorTextSecondary }}
+        >
+          {trend.text}
+        </div>
+      )}
     </div>
   );
 };

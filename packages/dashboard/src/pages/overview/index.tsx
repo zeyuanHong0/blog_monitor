@@ -1,16 +1,15 @@
 import { useState, useEffect } from "react";
+import { Eye, Users, MousePointerClick, UserCheck } from "lucide-react";
 
 import styles from "./index.module.scss";
 import StatCard from "@/components/StatCard";
-import type { CardType, TrendType } from "@/constants/colors";
 
 interface CardItem {
   title: string;
   value: string | number;
-  type: CardType;
+  icon?: React.ReactNode;
   trend?: {
     text: string;
-    type: TrendType;
   };
 }
 
@@ -23,26 +22,26 @@ const Overview = () => {
         {
           title: "PV 总访问量",
           value: "128,540",
-          trend: { text: "↑ 12.5% vs 上周", type: "up" },
-          type: "primary",
+          trend: { text: "↑ 12.5% vs 上周" },
+          icon: <Eye size={20} />,
         },
         {
           title: "UV 唯一访问",
           value: "128,540",
-          trend: { text: "↑ 12.5% vs 上周", type: "up" },
-          type: "primary",
+          trend: { text: "↑ 12.5% vs 上周" },
+          icon: <Users size={20} />,
         },
         {
           title: "访问次数",
           value: "128,540",
-          trend: { text: "↑ 12.5% vs 上周", type: "up" },
-          type: "primary",
+          trend: { text: "↑ 12.5% vs 上周" },
+          icon: <MousePointerClick size={20} />,
         },
         {
           title: "访问人数",
           value: "128,540",
-          trend: { text: "↑ 12.5% vs 上周", type: "up" },
-          type: "danger",
+          trend: { text: "↑ 12.5% vs 上周" },
+          icon: <UserCheck size={20} />,
         },
       ]);
     }, 1000);
@@ -55,7 +54,7 @@ const Overview = () => {
             title={item.title}
             value={item.value}
             trend={item.trend}
-            type={item.type}
+            icon={item.icon}
           />
         ))}
       </div>

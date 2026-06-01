@@ -4,6 +4,11 @@
 }
 
 .cardContainer {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 16px;
+
+  @media (min-width: 768px) {
+    gap: 12px;
+  }
 }
