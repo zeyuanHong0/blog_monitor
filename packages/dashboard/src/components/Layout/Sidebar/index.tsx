@@ -81,7 +81,7 @@ export default function Sidebar() {
         <Button
           type="text"
           size="small"
-          icon={<PanelLeft size={token.fontSize} />}
+          icon={<PanelLeft size={token.fontSizeLG} />}
           onClick={toggleSidebar}
           aria-label="折叠侧边栏"
           style={{ marginLeft: "auto", flexShrink: 0 }}

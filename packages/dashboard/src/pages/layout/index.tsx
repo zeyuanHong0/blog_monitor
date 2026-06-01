@@ -42,6 +42,7 @@ export default function MainLayout() {
             display: "flex",
             flexDirection: "column",
             overflow: "auto",
+            backgroundColor: token.colorBgContainer,
           }}
         >
           <Outlet />

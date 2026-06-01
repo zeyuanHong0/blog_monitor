@@ -1,5 +1,5 @@
 import { Breadcrumb, Button, Flex, Grid, Layout, theme } from "antd";
-import { MenuUnfoldOutlined } from "@ant-design/icons";
+import { PanelLeft } from "lucide-react";
 import { useLocation } from "react-router-dom";
 
 import useSettingsStore from "@/store/settingsStore";
@@ -43,7 +43,7 @@ export default function Header() {
         {isMobile && (
           <Button
             type="text"
-            icon={<MenuUnfoldOutlined />}
+            icon={<PanelLeft size={token.fontSizeLG} />}
             onClick={() => setSidebarCollapsed(true)}
             style={{ marginRight: token.marginSM }}
           />
