@@ -1,5 +1,10 @@
 import request from "@/utils/axios";
-import type { SignInData } from "./types";
+import type {
+  SignInData,
+  SignInResponse,
+  UserProfileResponse,
+  SignOutResponse,
+} from "./types";
 
 export * from "./types";
 
@@ -14,7 +19,7 @@ enum API {
  * @param data
  * @returns
  */
-export const fetchLogin = (data: SignInData) => {
+export const fetchLogin = (data: SignInData): Promise<SignInResponse> => {
   return request.post(API.SIGNIN, data);
 };
 
@@ -22,7 +27,7 @@ export const fetchLogin = (data: SignInData) => {
  * 获取用户信息
  * @returns 获取用户信息
  */
-export const fetchUserInfo = () => {
+export const fetchUserInfo = (): Promise<UserProfileResponse> => {
   return request.get(API.USER_PROFILE);
 };
 
@@ -30,6 +35,6 @@ export const fetchUserInfo = () => {
  * 退出登录
  * @returns 用户登出
  */
-export const fetchLogout = () => {
+export const fetchLogout = (): Promise<SignOutResponse> => {
   return request.post(API.LOGOUT);
 };

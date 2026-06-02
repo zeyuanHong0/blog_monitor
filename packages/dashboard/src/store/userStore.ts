@@ -1,57 +1,59 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 
 import {
   type SignInData,
   type UserProfile,
+  type SignInResponse,
+  type UserProfileResponse,
   fetchLogin,
   fetchLogout,
   fetchUserInfo,
 } from "@/api/user";
-import {
-  setLocalStorage,
-  getLocalStorage,
-  removeLocalStorage,
-} from "@/utils/storage";
 
 export type UserState = {
+  userInfo: UserProfile | null;
   isLoginExpired: boolean;
-  userInfo: UserProfile;
-  isAdmin: boolean | null;
   setLoginExpired: (expired: boolean) => void;
-  setIsAdmin: (isAdmin: boolean) => void;
-  userLogin: (data: SignInData) => Promise<any>;
-  getUserInfo: () => Promise<any>;
-  userLogout: () => Promise<string>;
+  userLogin: (data: SignInData) => Promise<SignInResponse>;
+  getUserInfo: () => Promise<UserProfileResponse>;
+  userLogout: () => Promise<"success">;
 };
 
-const useUserStore = create((set: any): UserState => {
-  return {
-    isLoginExpired: false, // 登录是否过期
-    userInfo: JSON.parse(getLocalStorage("userInfo") || "{}"),
-    isAdmin: null,
-    setIsAdmin: (isAdmin: boolean) => {
-      set({ isAdmin });
+const useUserStore = create<UserState>()(
+  persist(
+    (set) => ({
+      userInfo: null,
+      isLoginExpired: false,
+
+      setLoginExpired: (expired: boolean) => set({ isLoginExpired: expired }),
+
+      userLogin: async (data: SignInData) => {
+        const res = await fetchLogin(data);
+        return res;
+      },
+
+      getUserInfo: async () => {
+        const res = await fetchUserInfo();
+        set({ userInfo: res.data.userInfo });
+        return res;
+      },
+
+      userLogout: async () => {
+        await fetchLogout();
+        set({ userInfo: null, isLoginExpired: false });
+        return "success";
+      },
+    }),
+    {
+      name: "blog-monitor-user",
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state: UserState) => ({
+        userInfo: state.userInfo,
+      }),
+      version: 1,
     },
-    setLoginExpired: (expired: boolean) => {
-      set({ isLoginExpired: expired });
-    },
-    userLogin: async (data: SignInData) => {
-      const res: any = await fetchLogin(data);
-      return res;
-    },
-    getUserInfo: async () => {
-      const res: any = await fetchUserInfo();
-      set({ userInfo: res.data.userInfo });
-      setLocalStorage("userInfo", JSON.stringify(res.data.userInfo));
-      return res;
-    },
-    userLogout: async () => {
-      await fetchLogout();
-      set({ userInfo: {}, isAdmin: null });
-      removeLocalStorage("userInfo");
-      return "success";
-    },
-  };
-});
+  ),
+);
 
 export default useUserStore;
