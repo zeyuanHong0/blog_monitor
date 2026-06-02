@@ -3,6 +3,7 @@ import { Eye, Users, MousePointerClick, UserCheck } from "lucide-react";
 
 import styles from "./index.module.scss";
 import StatCard from "@/components/StatCard";
+import DateSelect from "@/components/DateSelect";
 
 interface CardItem {
   title: string;
@@ -48,6 +49,9 @@ const Overview = () => {
   }, []);
   return (
     <div className={styles.page}>
+      <div className={styles.selectBox}>
+        <DateSelect onChange={(value) => console.log(value)} />
+      </div>
       <div className={styles.cardContainer}>
         {cardList.map((item) => (
           <StatCard

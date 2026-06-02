@@ -3,6 +3,12 @@
   height: 100%;
 }
 
+.selectBox {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+
 .cardContainer {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
