@@ -18,3 +18,23 @@
     gap: 12px;
   }
 }
+
+.chartContainer {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 16px;
+  @media (min-width: 768px) {
+    gap: 12px;
+  }
+
+  .chartCard {
+    min-width: 0;
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    border: 1px solid #f0f0f0;
+    overflow: hidden;
+  }
+}
