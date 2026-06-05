@@ -32,7 +32,7 @@ export const DateSelect: React.FC<DateSelectProps> = ({ onChange }) => {
     <div style={{ display: "flex", gap: 8 }}>
       <Select
         value={preset}
-        style={{ width: 120 }}
+        style={{ width: 140 }}
         onChange={handleChange}
         options={DATE_RANGE_PRESETS}
       />
