@@ -1,0 +1,53 @@
+.vitalCard {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid;
+  padding: 20px;
+  transition: border-color 0.2s;
+
+  &:hover {
+    border-color: var(--ant-color-primary);
+  }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+
+  .title {
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .description {
+    font-size: 12px;
+    margin-bottom: 12px;
+  }
+
+  .valueSection {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+  }
+
+  .value {
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .unit {
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .progressWrapper {
+    margin-bottom: 10px;
+  }
+
+  .footer {
+    font-size: 12px;
+  }
+}
