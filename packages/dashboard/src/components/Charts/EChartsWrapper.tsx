@@ -19,10 +19,12 @@ const EChartsWrapper: React.FC<EChartsWrapperProps> = ({
   const instanceRef = useRef<echarts.ECharts | null>(null);
   const optionRef = useRef(option);
   const isFirstMount = useRef(true);
+  const mountTimeRef = useRef(0);
 
   useEffect(() => {
     if (chartRef.current) {
       instanceRef.current = echarts.init(chartRef.current, theme);
+      mountTimeRef.current = Date.now();
     }
     return () => {
       instanceRef.current?.dispose();
@@ -36,14 +38,17 @@ const EChartsWrapper: React.FC<EChartsWrapperProps> = ({
     }
   }, [option]);
   useEffect(() => {
-    const handleResize = () => instanceRef.current?.resize();
-    window.addEventListener("resize", handleResize);
+    const safeResize = () => {
+      if (Date.now() - mountTimeRef.current < 1200) return;
+      instanceRef.current?.resize();
+    };
 
-    const observer = new ResizeObserver(() => instanceRef.current?.resize());
+    window.addEventListener("resize", safeResize);
+    const observer = new ResizeObserver(safeResize);
     if (chartRef.current) observer.observe(chartRef.current);
 
     return () => {
-      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("resize", safeResize);
       observer.disconnect();
     };
   }, []);
@@ -63,6 +68,7 @@ const EChartsWrapper: React.FC<EChartsWrapperProps> = ({
     if (instanceRef.current && theme) {
       instanceRef.current.dispose();
       instanceRef.current = echarts.init(chartRef.current!, theme);
+      mountTimeRef.current = Date.now();
       instanceRef.current.setOption(optionRef.current, true);
     }
   }, [theme]);
