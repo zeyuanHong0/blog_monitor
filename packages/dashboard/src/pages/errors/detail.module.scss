@@ -1,0 +1,73 @@
+.page {
+  width: 100%;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+
+  .backBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+
+    &:hover {
+      opacity: 0.7;
+    }
+  }
+}
+
+.message {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 24px;
+  word-break: break-word;
+
+  @media (min-width: 576px) {
+    font-size: 22px;
+  }
+
+  @media (min-width: 768px) {
+    font-size: 24px;
+  }
+}
+
+.section {
+  margin-bottom: 24px;
+
+  .sectionTitle {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 12px;
+  }
+}
+
+.stackBlock {
+  border-radius: 8px;
+  padding: 16px;
+  overflow-x: auto;
+  max-height: 320px;
+  overflow-y: auto;
+
+  pre {
+    margin: 0;
+
+    code {
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      white-space: pre;
+    }
+  }
+}
+
+.contextCard {
+  border-radius: 8px;
+  padding: 20px;
+}
