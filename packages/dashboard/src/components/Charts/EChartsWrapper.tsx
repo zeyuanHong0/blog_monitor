@@ -19,48 +19,64 @@ const EChartsWrapper: React.FC<EChartsWrapperProps> = ({
   const instanceRef = useRef<echarts.ECharts | null>(null);
   const optionRef = useRef(option);
   const isFirstMount = useRef(true);
-  const mountTimeRef = useRef(0);
 
+  // 等待下一帧初始化图表
   useEffect(() => {
-    if (chartRef.current) {
-      instanceRef.current = echarts.init(chartRef.current, theme);
-      mountTimeRef.current = Date.now();
-    }
+    const rafId = requestAnimationFrame(() => {
+      if (chartRef.current) {
+        instanceRef.current = echarts.init(chartRef.current, theme);
+        if (optionRef.current) {
+          instanceRef.current.setOption(optionRef.current, true);
+        }
+        if (loading) {
+          instanceRef.current.showLoading();
+        }
+      }
+    });
     return () => {
+      cancelAnimationFrame(rafId);
       instanceRef.current?.dispose();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  // option 更新
   useEffect(() => {
-    if (instanceRef.current && option) {
-      optionRef.current = option;
+    optionRef.current = option;
+    if (instanceRef.current) {
       instanceRef.current.setOption(option, true);
     }
   }, [option]);
-  useEffect(() => {
-    const safeResize = () => {
-      if (Date.now() - mountTimeRef.current < 1200) return;
-      instanceRef.current?.resize();
-    };
 
-    window.addEventListener("resize", safeResize);
-    const observer = new ResizeObserver(safeResize);
+  // 监听窗口 resize 事件
+  useEffect(() => {
+    let skipFirst = true;
+    const handleResize = () => instanceRef.current?.resize();
+    window.addEventListener("resize", handleResize);
+    const observer = new ResizeObserver(() => {
+      if (skipFirst) {
+        skipFirst = false;
+        return;
+      }
+      handleResize();
+    });
     if (chartRef.current) observer.observe(chartRef.current);
 
     return () => {
-      window.removeEventListener("resize", safeResize);
+      window.removeEventListener("resize", handleResize);
       observer.disconnect();
     };
   }, []);
+  // loading 状态
   useEffect(() => {
+    if (!instanceRef.current) return;
     if (loading) {
-      instanceRef.current?.showLoading();
+      instanceRef.current.showLoading();
     } else {
-      instanceRef.current?.hideLoading();
+      instanceRef.current.hideLoading();
     }
   }, [loading]);
+  // theme 切换
   useEffect(() => {
-    // 首次挂载时不要执行
     if (isFirstMount.current) {
       isFirstMount.current = false;
       return;
@@ -68,7 +84,6 @@ const EChartsWrapper: React.FC<EChartsWrapperProps> = ({
     if (instanceRef.current && theme) {
       instanceRef.current.dispose();
       instanceRef.current = echarts.init(chartRef.current!, theme);
-      mountTimeRef.current = Date.now();
       instanceRef.current.setOption(optionRef.current, true);
     }
   }, [theme]);
