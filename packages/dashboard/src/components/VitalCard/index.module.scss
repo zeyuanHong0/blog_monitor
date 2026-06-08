@@ -45,6 +45,18 @@
 
   .progressWrapper {
     margin-bottom: 10px;
+
+    @keyframes progress {
+      from {
+        width: 0;
+      }
+      to {
+      }
+    }
+
+    .progressBar :global(.ant-progress-track) {
+      animation: progress 1s ease-out;
+    }
   }
 
   .footer {

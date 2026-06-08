@@ -62,7 +62,10 @@ const VitalCard: React.FC<VitalCardProps> = (props) => {
           {tagLabelMap[status]}
         </Tag>
       </div>
-      <div className={styles.description} style={{ color: token.colorTextSecondary }}>
+      <div
+        className={styles.description}
+        style={{ color: token.colorTextSecondary }}
+      >
         {description}
       </div>
       <div className={styles.valueSection}>
@@ -77,6 +80,7 @@ const VitalCard: React.FC<VitalCardProps> = (props) => {
       </div>
       <div className={styles.progressWrapper}>
         <Progress
+          className={styles.progressBar}
           percent={percent}
           strokeColor={strokeColor}
           showInfo={false}
@@ -84,7 +88,10 @@ const VitalCard: React.FC<VitalCardProps> = (props) => {
           size="small"
         />
       </div>
-      <div className={styles.footer} style={{ color: token.colorTextSecondary }}>
+      <div
+        className={styles.footer}
+        style={{ color: token.colorTextSecondary }}
+      >
         阈值: {thresholds[0]} / {thresholds[1]}
         {unit && ` ${unit}`}
       </div>
