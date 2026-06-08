@@ -1,0 +1,61 @@
+.page {
+  width: 100%;
+}
+
+.statsRow {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 12px;
+
+  @media (min-width: 576px) {
+    flex-direction: row;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  @media (min-width: 768px) {
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+}
+
+.statCard {
+  flex: 1;
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  border: 1px solid #f0f0f0;
+}
+
+.chartCard {
+  background: #fff;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  border: 1px solid #f0f0f0;
+  margin-bottom: 12px;
+
+  @media (min-width: 576px) {
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  @media (min-width: 768px) {
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+}
+
+.chartTitle {
+  font-size: 15px;
+  font-weight: 500;
+  color: #1f1f1f;
+  margin-bottom: 12px;
+
+  @media (min-width: 576px) {
+    font-size: 16px;
+    margin-bottom: 16px;
+  }
+}
