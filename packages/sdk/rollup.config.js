@@ -7,7 +7,7 @@ export default {
     {
       file: "dist/index.js", // UMD 输出
       format: "umd",
-      name: "BlogMonitor", // 挂在 window.BlogMonitor 上
+      name: "WebMonitor", // 挂在 window.WebMonitor 上
       plugins: [terser()], // 压缩代码
     },
     {

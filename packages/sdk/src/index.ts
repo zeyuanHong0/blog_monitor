@@ -1,6 +1,6 @@
-import { BlogMonitor } from "./core";
+import { BlogMonitor as WebMonitor } from "./core";
 export const version = "0.1.0";
-export { BlogMonitor };
+export { WebMonitor };
 export { ErrorCollector } from "./collectors/error";
 export type {
   MonitorConfig,

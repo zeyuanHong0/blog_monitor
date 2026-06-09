@@ -1,5 +1,5 @@
 import React from "react";
-import { BlogMonitor } from "@web-monitor/sdk";
+import { WebMonitor } from "@web-monitor/sdk";
 import type {
   MonitorErrorBoundaryProps,
   MonitorErrorBoundaryState,
@@ -20,8 +20,8 @@ function getSDKInstance(): BlogMonitorSDKGlobal | null {
   if (typeof window !== "undefined" && window.__BLOG_MONITOR_SDK__) {
     return window.__BLOG_MONITOR_SDK__;
   }
-  // 回退使用导入的 BlogMonitor 单例
-  return BlogMonitor as unknown as BlogMonitorSDKGlobal;
+  // 回退使用导入的 WebMonitor 单例
+  return WebMonitor as unknown as BlogMonitorSDKGlobal;
 }
 
 /**
