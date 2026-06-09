@@ -57,7 +57,7 @@ export class DashboardService {
     const todayStart = dayjs().startOf('day').toDate();
     const todayEnd = dayjs().endOf('day').toDate();
 
-    const [todayPvUv, todayErrors, trend, uptime, latestErrors] =
+    const [todayPvUv, todayErrors, trend, uptime, todayTopPages, latestErrors] =
       await Promise.all([
         // 今日实时 PV/UV
         this.pageViewRepository
@@ -100,6 +100,20 @@ export class DashboardService {
         // 近 24 小时可用率
         this.calculateUptime(24),
 
+        // 今日热门页面 TOP5
+        this.pageViewRepository
+          .createQueryBuilder('pv')
+          .select('pv.url', 'url')
+          .addSelect('COUNT(*)', 'count')
+          .where('pv.createTime >= :start AND pv.createTime <= :end', {
+            start: todayStart,
+            end: todayEnd,
+          })
+          .groupBy('pv.url')
+          .orderBy('count', 'DESC')
+          .limit(5)
+          .getRawMany<{ url: string; count: string }>(),
+
         // 最新 5 条错误
         this.errorRepository
           .createQueryBuilder('err')
@@ -121,6 +135,10 @@ export class DashboardService {
           pv: Number(todayPvUv?.pv ?? 0),
           uv: Number(todayPvUv?.uv ?? 0),
           errorCount: todayErrors,
+          topPages: todayTopPages.map((r) => ({
+            url: r.url,
+            count: Number(r.count),
+          })),
         },
         trend,
         uptime,

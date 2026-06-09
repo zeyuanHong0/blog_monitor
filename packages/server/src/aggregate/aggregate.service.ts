@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-// import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -154,7 +154,7 @@ export class AggregateService {
    * 每天凌晨 1:00 执行，聚合昨日数据写入 daily_stats
    * 也可手动传入 dateStr（YYYY-MM-DD）触发指定日期的回填
    */
-  // @Cron(CronExpression.EVERY_DAY_AT_1AM)
+  @Cron(CronExpression.EVERY_DAY_AT_1AM)
   async aggregateDaily(dateStr?: string): Promise<void> {
     const date = dateStr ?? dayjs().subtract(1, 'day').format('YYYY-MM-DD');
 

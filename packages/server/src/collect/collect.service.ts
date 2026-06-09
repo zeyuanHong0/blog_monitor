@@ -39,7 +39,8 @@ export class CollectService {
   }
 
   async saveSoftNavigation(dto: SoftNavigationDto) {
-    await this.performanceRepository.save(dto);
+    const softDto = { ...dto, navigationType: 'soft' as const };
+    await this.performanceRepository.save(softDto);
   }
 
   async saveError(dto: ErrorDto) {
