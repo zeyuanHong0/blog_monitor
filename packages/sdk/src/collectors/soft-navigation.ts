@@ -172,7 +172,7 @@ export class SoftNavigationCollector {
     this.observerMap.cls = new PerformanceObserver((list) => {
       const entries = list.getEntries() as LayoutShift[];
       entries.forEach((entry) => {
-        if (entry.hadRecentInput) return;
+        // 软路由场景：不过滤 hadRecentInput，
 
         // 如果与上一条目间隔 > 1s 或窗口起始到当前 > 5s，开启新窗口
         if (
@@ -258,11 +258,15 @@ export class SoftNavigationCollector {
           ? this.navigationDuration
           : performance.now() - this.navigationStartTime;
 
+    // 浏览器原生 largest-contentful-paint 不会在 SPA 路由切换后发射 entry，
+    // 用 DOM 稳定时间（navigationDuration）作为 LCP 兜底
+    const lcpValue = this.lcp ?? navigationDuration;
+
     this.ctx.reporter.add({
       type: ReportType.SOFT_NAVIGATION,
       ...createBasedata(this.ctx),
       fromUrl: this.fromUrl,
-      lcp: this.lcp,
+      lcp: lcpValue,
       cls: this.clsMaxValue > 0 ? this.clsMaxValue : null,
       inp: this.inp,
       navigationDuration,
