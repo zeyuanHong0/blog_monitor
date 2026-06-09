@@ -1,5 +1,5 @@
 {
-  "name": "@blog-monitor/react-sdk",
+  "name": "@web-monitor/react-sdk",
   "version": "1.0.0",
   "description": "React framework error adapter for blog-monitor SDK",
   "main": "dist/index.js",
@@ -10,7 +10,7 @@
     "dev": "rollup -c -w"
   },
   "peerDependencies": {
-    "@blog-monitor/sdk": "^1.0.0",
+    "@web-monitor/sdk": "^1.0.0",
     "react": ">=16.8.0"
   },
   "devDependencies": {

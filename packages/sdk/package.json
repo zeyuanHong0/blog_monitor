@@ -1,5 +1,5 @@
 {
-  "name": "@blog-monitor/sdk",
+  "name": "@web-monitor/sdk",
   "version": "1.0.0",
   "description": "",
   "main": "dist/index.js",

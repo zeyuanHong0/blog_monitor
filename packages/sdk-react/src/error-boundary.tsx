@@ -1,5 +1,5 @@
 import React from "react";
-import { BlogMonitor } from "@blog-monitor/sdk";
+import { BlogMonitor } from "@web-monitor/sdk";
 import type {
   MonitorErrorBoundaryProps,
   MonitorErrorBoundaryState,

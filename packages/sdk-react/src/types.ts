@@ -1,9 +1,9 @@
 /**
  * @blog-monitor/react 类型定义
- * 核心类型从 @blog-monitor/sdk 导入
+ * 核心类型从 @web-monitor/sdk 导入
  */
 import type React from 'react';
-export type { ErrorCollector, ErrorData, Framework, ErrorType } from '@blog-monitor/sdk';
+export type { ErrorCollector, ErrorData, Framework, ErrorType } from '@web-monitor/sdk';
 
 /** BlogMonitor SDK 实例接口（挂载到 window 上的全局对象） */
 export interface BlogMonitorSDKGlobal {

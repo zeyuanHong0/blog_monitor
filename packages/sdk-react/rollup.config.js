@@ -3,15 +3,15 @@ import { terser } from "rollup-plugin-terser";
 
 export default {
   input: "src/index.ts", // 入口文件
-  external: ["react", "@blog-monitor/sdk"],
+  external: ["react", "@web-monitor/sdk"],
   output: [
     {
       file: "dist/index.js", // UMD 输出
       format: "umd",
-      name: "BlogMonitorReact",
+      name: "WebMonitorReact",
       globals: {
         react: "React",
-        "@blog-monitor/sdk": "BlogMonitorSdk",
+        "@web-monitor/sdk": "WebMonitorSdk",
       },
       plugins: [terser()], // 压缩代码
     },
