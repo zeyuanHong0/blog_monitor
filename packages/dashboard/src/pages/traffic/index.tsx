@@ -2,7 +2,7 @@ import { Table } from "antd";
 
 import styles from "./index.module.scss";
 import DateSelect from "@/components/DateSelect";
-import { LineChart, PieChart } from "@/components/Charts";
+import { LineChart, BarChart } from "@/components/Charts";
 
 const mockTopPages = [
   { url: "/home", count: 1523 },
@@ -26,6 +26,12 @@ const topPagesColumns = [
     dataIndex: "count",
   },
 ];
+
+const mockHourlyData = [
+  8, 5, 3, 2, 2, 4, 10, 28, 45, 60, 72, 80,
+  75, 68, 55, 50, 58, 70, 65, 50, 38, 25, 15, 10,
+];
+const hourlyXData = Array.from({ length: 24 }, (_, i) => `${i}时`);
 
 const Traffic = () => {
   return (
@@ -66,7 +72,7 @@ const Traffic = () => {
       <div className={styles.chartContainer}>
         <div className={styles.chartCard}>
           <div className={styles.chartTitle}>
-            <span className={styles.title}>热门页面Top5</span>
+            <span className={styles.title}>热门页面Top10</span>
           </div>
           <Table
             rowKey="url"
@@ -78,15 +84,14 @@ const Traffic = () => {
         </div>
         <div className={styles.chartCard}>
           <div className={styles.chartTitle}>
-            <span className={styles.title}>访问来源分布</span>
+            <span className={styles.title}>访问时段分布</span>
+            <span className={styles.desc}>按小时统计 PV</span>
           </div>
-          <PieChart
-            data={[
-              { name: "来源A", value: 10 },
-              { name: "来源B", value: 20 },
-              { name: "来源C", value: 30 },
-              { name: "来源D", value: 40 },
-            ]}
+          <BarChart
+            xData={hourlyXData}
+            data={mockHourlyData}
+            name="PV"
+            color="#5B8FF9"
           />
         </div>
       </div>

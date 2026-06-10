@@ -16,7 +16,7 @@ type FieldType = {
 
 const Login = () => {
   const [messageApi, contextHolder] = message.useMessage();
-  const { userLogin, getUserInfo } = useUserStore();
+  const { userLogin, getUserInfo, setLoginExpired } = useUserStore();
   const navigate = useNavigate();
   const token = useThemeToken();
   const glassMix = "42%";
@@ -36,6 +36,7 @@ const Login = () => {
     try {
       await userLogin(values);
       await getUserInfo();
+      setLoginExpired(false); // 登录成功后重置登录过期状态
       navigate("/", { replace: true });
     } catch (err: any) {
       messageApi.error(err.message || "登录失败，请检查用户名和密码");
