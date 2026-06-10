@@ -9,6 +9,11 @@ import { Heartbeat } from '@/heartbeat/entities/heartbeat.entity';
 import { DashboardQueryDto } from './dto/query.dto';
 import dayjs from '@/common/dayjs.config';
 
+interface UserAgentDistribution {
+  browserDistribution: { name: string; value: number }[];
+  deviceDistribution: { name: string; value: number }[];
+}
+
 @Injectable()
 export class DashboardService {
   constructor(
@@ -34,6 +39,47 @@ export class DashboardService {
     return { start, end };
   }
 
+  private handleUserAgent(userAgentList: string[]): UserAgentDistribution {
+    // UA 格式："Chrome 148.0.0.0 | macOS 10.15.7 | Desktop"
+    const browserCount: Record<string, number> = {};
+    const deviceCount: Record<string, number> = {};
+
+    for (const ua of userAgentList) {
+      if (!ua) continue;
+      const parts = ua.split('|').map((p) => p.trim());
+      const browser = parts[0]?.split(' ')[0] ?? '其他';
+      const device = parts[2] ?? 'Desktop';
+      browserCount[browser] = (browserCount[browser] ?? 0) + 1;
+      deviceCount[device] = (deviceCount[device] ?? 0) + 1;
+    }
+
+    return {
+      browserDistribution: Object.entries(browserCount)
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value),
+      deviceDistribution: Object.entries(deviceCount)
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value),
+    };
+  }
+
+  // 处理趋势数据格式，转化成前端图表需要的格式
+  private handleTrendData(trendData: DailyStat[]) {
+    const dateList = trendData.map((item) => item.date);
+    const pvData = { name: 'PV', data: trendData.map((item) => item.pv) };
+    const uvData = { name: 'UV', data: trendData.map((item) => item.uv) };
+    const errorCountData = {
+      name: '错误数',
+      data: trendData.map((item) => item.errorCount),
+    };
+    return {
+      dateList,
+      pvData,
+      uvData,
+      errorCountData,
+    };
+  }
+
   private async calculateUptime(hours: number): Promise<number> {
     const since = dayjs().subtract(hours, 'hour').toDate();
 
@@ -57,77 +103,91 @@ export class DashboardService {
     const todayStart = dayjs().startOf('day').toDate();
     const todayEnd = dayjs().endOf('day').toDate();
 
-    const [todayPvUv, todayErrors, trend, uptime, todayTopPages, latestErrors] =
-      await Promise.all([
-        // 今日实时 PV/UV
-        this.pageViewRepository
-          .createQueryBuilder('pv')
-          .select('COUNT(*)', 'pv')
-          .addSelect('COUNT(DISTINCT pv.sessionId)', 'uv')
-          .where('pv.createTime >= :start AND pv.createTime <= :end', {
-            start: todayStart,
-            end: todayEnd,
-          })
-          .getRawOne<{ pv: string; uv: string }>(),
+    const [
+      todayPvUv,
+      todayErrors,
+      trend,
+      uptime,
+      uaDistribution,
+      todayTopPages,
+      latestErrors,
+    ] = await Promise.all([
+      // 今日实时 PV/UV
+      this.pageViewRepository
+        .createQueryBuilder('pv')
+        .select('COUNT(*)', 'pv')
+        .addSelect('COUNT(DISTINCT pv.sessionId)', 'uv')
+        .where('pv.createTime >= :start AND pv.createTime <= :end', {
+          start: todayStart,
+          end: todayEnd,
+        })
+        .getRawOne<{ pv: string; uv: string }>(),
 
-        // 今日实时错误数
-        this.errorRepository
-          .createQueryBuilder('err')
-          .where('err.createTime >= :start AND err.createTime <= :end', {
-            start: todayStart,
-            end: todayEnd,
-          })
-          .getCount(),
+      // 今日实时错误数
+      this.errorRepository
+        .createQueryBuilder('err')
+        .where('err.createTime >= :start AND err.createTime <= :end', {
+          start: todayStart,
+          end: todayEnd,
+        })
+        .getCount(),
 
-        // 近 7 天趋势
-        this.dailyStatRepository
-          .createQueryBuilder('ds')
-          .select([
-            'ds.date',
-            'ds.pv',
-            'ds.uv',
-            'ds.errorCount',
-            'ds.avgFcp',
-            'ds.avgLcp',
-          ])
-          .where('ds.date >= :start AND ds.date <= :end', {
-            start: sevenDaysAgo,
-            end: today,
-          })
-          .orderBy('ds.date', 'ASC')
-          .getMany(),
+      // 近 7 天趋势
+      this.dailyStatRepository
+        .createQueryBuilder('ds')
+        .select(['ds.date', 'ds.pv', 'ds.uv', 'ds.errorCount'])
+        .where('ds.date >= :start AND ds.date <= :end', {
+          start: sevenDaysAgo,
+          end: today,
+        })
+        .orderBy('ds.date', 'ASC')
+        .getMany()
+        .then((data) => this.handleTrendData(data)),
 
-        // 近 24 小时可用率
-        this.calculateUptime(24),
+      // 近 24 小时可用率
+      this.calculateUptime(24),
 
-        // 今日热门页面 TOP5
-        this.pageViewRepository
-          .createQueryBuilder('pv')
-          .select('pv.url', 'url')
-          .addSelect('COUNT(*)', 'count')
-          .where('pv.createTime >= :start AND pv.createTime <= :end', {
-            start: todayStart,
-            end: todayEnd,
-          })
-          .groupBy('pv.url')
-          .orderBy('count', 'DESC')
-          .limit(5)
-          .getRawMany<{ url: string; count: string }>(),
+      // 今日浏览器和设备分布（从 page_views 中获取 UserAgent 字段，解析后统计）
+      this.pageViewRepository
+        .createQueryBuilder('pv')
+        .select('pv.userAgent', 'userAgent')
+        .where('pv.createTime >= :start AND pv.createTime <= :end', {
+          start: todayStart,
+          end: todayEnd,
+        })
+        .getRawMany<{ userAgent: string }>()
+        .then((results) =>
+          this.handleUserAgent(results.map((r) => r.userAgent)),
+        ),
 
-        // 最新 5 条错误
-        this.errorRepository
-          .createQueryBuilder('err')
-          .select([
-            'err.id',
-            'err.errorType',
-            'err.message',
-            'err.url',
-            'err.createTime',
-          ])
-          .orderBy('err.createTime', 'DESC')
-          .limit(5)
-          .getMany(),
-      ]);
+      // 今日热门页面 TOP5
+      this.pageViewRepository
+        .createQueryBuilder('pv')
+        .select('pv.url', 'url')
+        .addSelect('COUNT(*)', 'count')
+        .where('pv.createTime >= :start AND pv.createTime <= :end', {
+          start: todayStart,
+          end: todayEnd,
+        })
+        .groupBy('pv.url')
+        .orderBy('count', 'DESC')
+        .limit(5)
+        .getRawMany<{ url: string; count: string }>(),
+
+      // 最新 5 条错误
+      this.errorRepository
+        .createQueryBuilder('err')
+        .select([
+          'err.id',
+          'err.errorType',
+          'err.message',
+          'err.url',
+          'err.createTime',
+        ])
+        .orderBy('err.createTime', 'DESC')
+        .limit(5)
+        .getMany(),
+    ]);
 
     return {
       data: {
@@ -139,6 +199,8 @@ export class DashboardService {
             url: r.url,
             count: Number(r.count),
           })),
+          browserDistribution: uaDistribution.browserDistribution,
+          deviceDistribution: uaDistribution.deviceDistribution,
         },
         trend,
         uptime,
