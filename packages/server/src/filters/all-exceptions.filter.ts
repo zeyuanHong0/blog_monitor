@@ -35,7 +35,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       }
 
       // 清除无效的 cookie
-      response.clearCookie('token', {
+      response.clearCookie('monitor_token', {
         httpOnly: true,
         secure: false,
         sameSite: 'lax',

@@ -43,7 +43,7 @@ export class AuthService {
     const token = this.jwtService.sign(payload);
 
     // 设置 cookie
-    res.cookie('token', token, {
+    res.cookie('monitor_token', token, {
       httpOnly: true, // 防止 XSS 攻击
       secure: false, // 如果没有 HTTPS，设为 false
       sameSite: 'lax', // 允许同站导航携带 Cookie
@@ -59,7 +59,7 @@ export class AuthService {
 
   signout(res: Response) {
     // 清除 cookie
-    res.clearCookie('token', {
+    res.clearCookie('monitor_token', {
       httpOnly: true,
       secure: false,
       sameSite: 'lax',

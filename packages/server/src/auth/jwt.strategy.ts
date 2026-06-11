@@ -18,7 +18,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       jwtFromRequest: ExtractJwt.fromExtractors([
         // 优先从 cookie 中提取
         (request: Request) => {
-          const token = request?.cookies?.token as string | undefined;
+          const token = request?.cookies?.monitor_token as string | undefined;
           return token ?? null;
         },
         // 兼容从 Authorization header 中提取
