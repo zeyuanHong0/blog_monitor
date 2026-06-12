@@ -113,7 +113,7 @@ const Overview = () => {
         ))}
       </div>
       <div className={styles.chartContainer}>
-        <div className={styles.chartCard}>
+        <div className={`${styles.chartCard} ${styles.fullWidth}`}>
           <div className={styles.chartTitle}>
             <span className={styles.title}>PV / UV 趋势</span>
             <span className={styles.desc}>过去7天</span>

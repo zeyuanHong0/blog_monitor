@@ -57,7 +57,7 @@ const LineChart: React.FC<LineChartProps> = ({
     },
     grid: {
       left: "3%",
-      right: "4%",
+      right: "6%",
       top: "14%",
       bottom: "3%",
       containLabel: true,
@@ -70,6 +70,8 @@ const LineChart: React.FC<LineChartProps> = ({
       axisTick: { show: false },
       axisLabel: {
         color: "#999",
+        interval: xData.length <= 14 ? 0 : xData.length <= 30 ? 1 : Math.floor(xData.length / 12),
+        rotate: xData.length > 30 ? 30 : 0,
       },
     },
     yAxis: {
