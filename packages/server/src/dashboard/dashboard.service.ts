@@ -33,9 +33,12 @@ export class DashboardService {
     start: string;
     end: string;
   } {
-    const end = query.endDate ?? dayjs().format('YYYY-MM-DD');
-    const start =
-      query.startDate ?? dayjs().subtract(6, 'day').format('YYYY-MM-DD');
+    const end = query.endDate
+      ? dayjs(query.endDate).format('YYYY-MM-DD')
+      : dayjs().format('YYYY-MM-DD');
+    const start = query.startDate
+      ? dayjs(query.startDate).format('YYYY-MM-DD')
+      : dayjs().subtract(6, 'day').format('YYYY-MM-DD');
     return { start, end };
   }
 
@@ -212,7 +215,7 @@ export class DashboardService {
   async getTraffic(query: DashboardQueryDto) {
     const { start, end } = this.getDateRange(query);
 
-    const [trend, topPages, referrerDistribution] = await Promise.all([
+    const [trendRaw, topPages, hourlyRaw] = await Promise.all([
       // PV/UV 趋势（来自 daily_stats）
       this.dailyStatRepository
         .createQueryBuilder('ds')
@@ -235,29 +238,41 @@ export class DashboardService {
         .limit(10)
         .getRawMany<{ url: string; count: string }>(),
 
-      // 来源分布（来自 page_views 分组）
+      // 访问时段分布（按小时分组，统计整个日期范围内各时段的 PV）
       this.pageViewRepository
         .createQueryBuilder('pv')
-        .select('pv.referrer', 'referrer')
+        .select('HOUR(pv.createTime)', 'hour')
         .addSelect('COUNT(*)', 'count')
         .where(
-          "DATE(pv.createTime) >= :start AND DATE(pv.createTime) <= :end AND pv.referrer IS NOT NULL AND pv.referrer != ''",
+          'DATE(pv.createTime) >= :start AND DATE(pv.createTime) <= :end',
           { start, end },
         )
-        .groupBy('pv.referrer')
-        .orderBy('count', 'DESC')
-        .limit(10)
-        .getRawMany<{ referrer: string; count: string }>(),
+        .groupBy('HOUR(pv.createTime)')
+        .orderBy('hour', 'ASC')
+        .getRawMany<{ hour: string; count: string }>(),
     ]);
+
+    // 转换趋势数据格式，匹配前端 LineChart 所需结构
+    const trend = {
+      dateList: trendRaw.map((item) => item.date),
+      pvData: { name: 'PV', data: trendRaw.map((item) => item.pv) },
+      uvData: { name: 'UV', data: trendRaw.map((item) => item.uv) },
+    };
+
+    // 转换为 0-23 时完整数组，缺失时段补 0
+    const hourlyMap = new Map(
+      hourlyRaw.map((r) => [Number(r.hour), Number(r.count)]),
+    );
+    const hourlyDistribution = Array.from(
+      { length: 24 },
+      (_, i) => hourlyMap.get(i) ?? 0,
+    );
 
     return {
       data: {
         trend,
         topPages: topPages.map((r) => ({ url: r.url, count: Number(r.count) })),
-        referrerDistribution: referrerDistribution.map((r) => ({
-          referrer: r.referrer,
-          count: Number(r.count),
-        })),
+        hourlyDistribution,
       },
     };
   }
