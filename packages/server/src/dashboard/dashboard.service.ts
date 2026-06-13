@@ -214,17 +214,36 @@ export class DashboardService {
 
   async getTraffic(query: DashboardQueryDto) {
     const { start, end } = this.getDateRange(query);
+    const isHourly = query.granularity === 'hour' || start === end;
 
-    const [trendRaw, topPages, hourlyRaw] = await Promise.all([
-      // PV/UV 趋势（来自 daily_stats）
-      this.dailyStatRepository
-        .createQueryBuilder('ds')
-        .select(['ds.date', 'ds.pv', 'ds.uv'])
-        .where('ds.date >= :start AND ds.date <= :end', { start, end })
-        .orderBy('ds.date', 'ASC')
-        .getMany(),
+    const [trendRaw, hourlyTrendRaw, topPages, hourlyRaw] = await Promise.all([
+      // PV/UV 日粒度趋势（仅多天时使用）
+      isHourly
+        ? Promise.resolve([] as Pick<DailyStat, 'date' | 'pv' | 'uv'>[])
+        : this.dailyStatRepository
+            .createQueryBuilder('ds')
+            .select(['ds.date', 'ds.pv', 'ds.uv'])
+            .where('ds.date >= :start AND ds.date <= :end', { start, end })
+            .orderBy('ds.date', 'ASC')
+            .getMany(),
 
-      // 页面 Top10（来自 page_views 分组）
+      // PV/UV 小时粒度趋势（仅单天时使用）
+      isHourly
+        ? this.pageViewRepository
+            .createQueryBuilder('pv')
+            .select('HOUR(pv.createTime)', 'hour')
+            .addSelect('COUNT(*)', 'pv')
+            .addSelect('COUNT(DISTINCT pv.sessionId)', 'uv')
+            .where(
+              'DATE(pv.createTime) >= :start AND DATE(pv.createTime) <= :end',
+              { start, end },
+            )
+            .groupBy('HOUR(pv.createTime)')
+            .orderBy('hour', 'ASC')
+            .getRawMany<{ hour: string; pv: string; uv: string }>()
+        : Promise.resolve([] as { hour: string; pv: string; uv: string }[]),
+
+      // 页面 Top5（来自 page_views 分组）
       this.pageViewRepository
         .createQueryBuilder('pv')
         .select('pv.url', 'url')
@@ -235,7 +254,7 @@ export class DashboardService {
         )
         .groupBy('pv.url')
         .orderBy('count', 'DESC')
-        .limit(10)
+        .limit(5)
         .getRawMany<{ url: string; count: string }>(),
 
       // 访问时段分布（按小时分组，统计整个日期范围内各时段的 PV）
@@ -253,11 +272,36 @@ export class DashboardService {
     ]);
 
     // 转换趋势数据格式，匹配前端 LineChart 所需结构
-    const trend = {
-      dateList: trendRaw.map((item) => item.date),
-      pvData: { name: 'PV', data: trendRaw.map((item) => item.pv) },
-      uvData: { name: 'UV', data: trendRaw.map((item) => item.uv) },
+    let trend: {
+      dateList: string[];
+      pvData: { name: string; data: number[] };
+      uvData: { name: string; data: number[] };
     };
+    if (isHourly) {
+      const hourlyMap = new Map(
+        hourlyTrendRaw.map((r) => [
+          Number(r.hour),
+          { pv: Number(r.pv), uv: Number(r.uv) },
+        ]),
+      );
+      trend = {
+        dateList: Array.from({ length: 24 }, (_, i) => `${i}时`),
+        pvData: {
+          name: 'PV',
+          data: Array.from({ length: 24 }, (_, i) => hourlyMap.get(i)?.pv ?? 0),
+        },
+        uvData: {
+          name: 'UV',
+          data: Array.from({ length: 24 }, (_, i) => hourlyMap.get(i)?.uv ?? 0),
+        },
+      };
+    } else {
+      trend = {
+        dateList: trendRaw.map((item) => item.date),
+        pvData: { name: 'PV', data: trendRaw.map((item) => item.pv) },
+        uvData: { name: 'UV', data: trendRaw.map((item) => item.uv) },
+      };
+    }
 
     // 转换为 0-23 时完整数组，缺失时段补 0
     const hourlyMap = new Map(

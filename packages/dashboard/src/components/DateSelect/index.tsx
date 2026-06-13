@@ -9,10 +9,14 @@ const { RangePicker } = DatePicker;
 
 interface DateSelectProps {
   onChange: (value: [string, string]) => void;
+  defaultPreset?: Preset;
 }
 
-export const DateSelect: React.FC<DateSelectProps> = ({ onChange }) => {
-  const [preset, setPreset] = useState<Preset>("today");
+export const DateSelect: React.FC<DateSelectProps> = ({
+  onChange,
+  defaultPreset = "today",
+}) => {
+  const [preset, setPreset] = useState<Preset>(defaultPreset);
   const handleChange = (value: Preset) => {
     setPreset(value);
     if (value !== "custom") {

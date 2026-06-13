@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { BarChart3, UserRound, Bug, ShieldCheck } from "lucide-react";
-import { Table, Tag } from "antd";
+import { Skeleton, Table, Tag } from "antd";
 
 import { getOverview } from "@/api/overview";
 import type { OverviewData } from "@/api/overview/types";
@@ -9,19 +9,39 @@ import styles from "./index.module.scss";
 import StatCard from "@/components/StatCard";
 import { LineChart, PieChart } from "@/components/Charts";
 
-const topPagesColumns = [
+const SKELETON_ROWS: any[] = Array.from({ length: 5 }, (_, i) => ({
+  id: i,
+  url: `__skeleton__${i}`,
+}));
+
+const buildTopPagesColumns = (loading: boolean) => [
   {
     title: "排名",
     key: "rank",
-    render: (_: any, __: any, index: number) => <span>{index + 1}</span>,
+    width: 60,
+    render: (_: any, __: any, index: number) =>
+      loading ? (
+        <Skeleton.Input size="small" active />
+      ) : (
+        <span>{index + 1}</span>
+      ),
   },
   {
     title: "页面URL",
     dataIndex: "url",
+    render: (val: string) =>
+      loading ? (
+        <Skeleton.Input size="small" active block />
+      ) : (
+        <span>{val}</span>
+      ),
   },
   {
     title: "访问次数",
     dataIndex: "count",
+    width: 90,
+    render: (val: number) =>
+      loading ? <Skeleton.Input size="small" active /> : <span>{val}</span>,
   },
 ];
 
@@ -31,12 +51,15 @@ const errorTypeConfig: Record<string, { color: string; label: string }> = {
   resource: { color: "volcano", label: "资源" },
 };
 
-const latestErrorsColumns = [
+const buildLatestErrorsColumns = (loading: boolean) => [
   {
     title: "类型",
     dataIndex: "errorType",
     width: 100,
     render: (type: string) => {
+      if (loading) {
+        return <Skeleton.Input size="small" active />;
+      }
       const cfg = errorTypeConfig[type];
       return <Tag color={cfg?.color}>{cfg?.label ?? type}</Tag>;
     },
@@ -44,21 +67,39 @@ const latestErrorsColumns = [
   {
     title: "错误信息",
     dataIndex: "message",
+    render: (val: string) =>
+      loading ? (
+        <Skeleton.Input size="small" active block />
+      ) : (
+        <span>{val}</span>
+      ),
   },
   {
     title: "页面",
     dataIndex: "url",
     ellipsis: true,
     width: 150,
+    render: (val: string) =>
+      loading ? (
+        <Skeleton.Input size="small" active block />
+      ) : (
+        <span>{val}</span>
+      ),
   },
   {
     title: "时间",
     dataIndex: "createTime",
     width: 200,
+    render: (val: string) =>
+      loading ? (
+        <Skeleton.Input size="small" active />
+      ) : (
+        <span>{new Date(val).toLocaleString()}</span>
+      ),
   },
 ];
 
-const DEFAULT_TREND = {
+const DEFAULT_TREND: OverviewData["trend"] = {
   dateList: [] as string[],
   pvData: { name: "PV", data: [] as number[] },
   uvData: { name: "UV", data: [] as number[] },
@@ -144,10 +185,15 @@ const Overview = () => {
           </div>
           <Table
             rowKey="url"
-            dataSource={today?.topPages ?? []}
-            columns={topPagesColumns}
+            dataSource={
+              overviewData === null
+                ? SKELETON_ROWS
+                : overviewData?.today?.topPages
+            }
+            columns={buildTopPagesColumns(overviewData === null)}
             pagination={false}
             size="small"
+            scroll={{ x: "max-content" }}
           />
         </div>
 
@@ -157,8 +203,10 @@ const Overview = () => {
           </div>
           <Table
             rowKey="id"
-            dataSource={overviewData?.latestErrors ?? []}
-            columns={latestErrorsColumns}
+            dataSource={
+              overviewData === null ? SKELETON_ROWS : overviewData?.latestErrors
+            }
+            columns={buildLatestErrorsColumns(overviewData === null)}
             pagination={false}
             size="small"
             scroll={{ x: "max-content" }}
