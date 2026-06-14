@@ -323,52 +323,155 @@ export class DashboardService {
 
   async getErrors(query: DashboardQueryDto) {
     const { start, end } = this.getDateRange(query);
+    const isHourly = query.granularity === 'hour' || start === end;
 
-    const [trend, list] = await Promise.all([
-      // 错误趋势（来自 daily_stats）
-      this.dailyStatRepository
-        .createQueryBuilder('ds')
-        .select([
-          'ds.date',
-          'ds.errorCount',
-          'ds.jsErrorCount',
-          'ds.promiseErrorCount',
-          'ds.resourceErrorCount',
-        ])
-        .where('ds.date >= :start AND ds.date <= :end', { start, end })
-        .orderBy('ds.date', 'ASC')
-        .getMany(),
+    const [trendRaw, hourlyTrendRaw, list] = await Promise.all([
+      isHourly
+        ? Promise.resolve(
+            [] as Pick<
+              DailyStat,
+              | 'date'
+              | 'jsErrorCount'
+              | 'promiseErrorCount'
+              | 'resourceErrorCount'
+            >[],
+          )
+        : this.dailyStatRepository
+            .createQueryBuilder('ds')
+            .select([
+              'ds.jsErrorCount',
+              'ds.promiseErrorCount',
+              'ds.resourceErrorCount',
+              'ds.date',
+            ])
+            .where('ds.date >= :start AND ds.date <= :end', { start, end })
+            .orderBy('ds.date', 'ASC')
+            .getMany(),
 
-      // 错误列表（按 message 分组，COUNT + MAX(createTime)）
+      isHourly
+        ? this.errorRepository
+            .createQueryBuilder('err')
+            .select('HOUR(err.createTime)', 'hour')
+            .addSelect('COUNT(*)', 'count')
+            .addSelect('err.errorType', 'errorType')
+            .where(
+              'DATE(err.createTime) >= :start AND DATE(err.createTime) <= :end',
+              { start, end },
+            )
+            .groupBy('hour')
+            .addGroupBy('err.errorType')
+            .orderBy('hour', 'ASC')
+            .getRawMany<{
+              hour: string;
+              count: string;
+              errorType: string;
+            }>()
+        : Promise.resolve(
+            [] as { hour: string; count: string; errorType: string }[],
+          ),
+
+      // 错误列表
       this.errorRepository
         .createQueryBuilder('err')
-        .select('err.message', 'message')
+        .select('err.id', 'id')
+        .addSelect('err.message', 'message')
         .addSelect('err.errorType', 'errorType')
-        .addSelect('COUNT(*)', 'count')
-        .addSelect('MAX(err.createTime)', 'lastSeen')
+        .addSelect('err.createTime', 'lastSeen')
         .where(
           'DATE(err.createTime) >= :start AND DATE(err.createTime) <= :end',
           { start, end },
         )
-        .groupBy('err.message')
-        .addGroupBy('err.errorType')
-        .orderBy('count', 'DESC')
-        .limit(50)
+        .orderBy('err.createTime', 'DESC')
         .getRawMany<{
+          id: string;
           message: string;
           errorType: string;
-          count: string;
           lastSeen: string;
         }>(),
     ]);
+
+    let trend: {
+      dateList: string[];
+      jsErrorCountData: { name: string; data: number[] };
+      promiseErrorCountData: { name: string; data: number[] };
+      resourceErrorCountData: { name: string; data: number[] };
+    };
+    if (isHourly) {
+      const hourlyMap = new Map<
+        number,
+        {
+          jsErrorCount: number;
+          promiseErrorCount: number;
+          resourceErrorCount: number;
+        }
+      >();
+
+      for (const r of hourlyTrendRaw) {
+        const hour = Number(r.hour);
+        const current = hourlyMap.get(hour) ?? {
+          jsErrorCount: 0,
+          promiseErrorCount: 0,
+          resourceErrorCount: 0,
+        };
+        if (r.errorType === 'js') {
+          current.jsErrorCount = Number(r.count);
+        } else if (r.errorType === 'promise') {
+          current.promiseErrorCount = Number(r.count);
+        } else if (r.errorType === 'resource') {
+          current.resourceErrorCount = Number(r.count);
+        }
+        hourlyMap.set(hour, current);
+      }
+
+      trend = {
+        dateList: Array.from({ length: 24 }, (_, i) => `${i}时`),
+        jsErrorCountData: {
+          name: 'JS错误数',
+          data: Array.from(
+            { length: 24 },
+            (_, i) => hourlyMap.get(i)?.jsErrorCount ?? 0,
+          ),
+        },
+        promiseErrorCountData: {
+          name: 'Promise错误数',
+          data: Array.from(
+            { length: 24 },
+            (_, i) => hourlyMap.get(i)?.promiseErrorCount ?? 0,
+          ),
+        },
+        resourceErrorCountData: {
+          name: '资源错误数',
+          data: Array.from(
+            { length: 24 },
+            (_, i) => hourlyMap.get(i)?.resourceErrorCount ?? 0,
+          ),
+        },
+      };
+    } else {
+      trend = {
+        dateList: trendRaw.map((item) => item.date),
+        jsErrorCountData: {
+          name: 'JS错误数',
+          data: trendRaw.map((item) => item.jsErrorCount),
+        },
+        promiseErrorCountData: {
+          name: 'Promise错误数',
+          data: trendRaw.map((item) => item.promiseErrorCount),
+        },
+        resourceErrorCountData: {
+          name: '资源错误数',
+          data: trendRaw.map((item) => item.resourceErrorCount),
+        },
+      };
+    }
 
     return {
       data: {
         trend,
         list: list.map((r) => ({
+          id: r.id,
           message: r.message,
           errorType: r.errorType,
-          count: Number(r.count),
           lastSeen: r.lastSeen,
         })),
       },
