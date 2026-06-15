@@ -61,7 +61,9 @@ const ErrorDetail = () => {
         title="参数错误"
         subTitle="缺少错误 ID"
         extra={
-          <Button onClick={() => navigate("/errors")}>返回错误列表</Button>
+          <Button onClick={() => navigate("/errors", { replace: true })}>
+            返回错误列表
+          </Button>
         }
       />
     );

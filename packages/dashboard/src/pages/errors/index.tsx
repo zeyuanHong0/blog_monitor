@@ -5,7 +5,7 @@ import dayjs from "dayjs";
 
 import { getErrors } from "@/api/errors";
 import type { ErrorsData } from "@/api/errors/types";
-import { getDefaultRange } from "@/utils/dateRange";
+import { useDateFilterSessionStorage } from "@/hooks/useDateFilterSessionStorage";
 
 import styles from "./index.module.scss";
 import DateSelect from "@/components/DateSelect";
@@ -79,9 +79,12 @@ const DEFAULT_TREND: ErrorsData["trend"] = {
 
 const Errors = () => {
   const navigate = useNavigate();
-  const [searchDateRange, setSearchDateRange] = useState<[string, string]>(
-    getDefaultRange("today"),
-  );
+  const { preset, dateRange: searchDateRange, onDateChange } =
+    useDateFilterSessionStorage({
+      storageKey: "errors",
+      defaultPreset: "today",
+    });
+
   const [errors, setErrors] = useState<ErrorsData | null>(null);
   const isSingleDay = useMemo(
     () =>
@@ -109,7 +112,11 @@ const Errors = () => {
   return (
     <div className={styles.page}>
       <div className={styles.selectBox}>
-        <DateSelect onChange={setSearchDateRange} defaultPreset="today" />
+        <DateSelect
+          onChange={onDateChange}
+          preset={preset}
+          value={searchDateRange}
+        />
       </div>
       <div className={styles.chartContainer}>
         <div className={styles.chartCard}>

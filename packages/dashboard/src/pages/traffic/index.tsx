@@ -4,7 +4,7 @@ import dayjs from "dayjs";
 
 import { getTraffic } from "@/api/traffic";
 import type { TrafficData, TopPage } from "@/api/traffic/types";
-import { getDefaultRange } from "@/utils/dateRange";
+import { useDateFilterSessionStorage } from "@/hooks/useDateFilterSessionStorage";
 
 import styles from "./index.module.scss";
 import DateSelect from "@/components/DateSelect";
@@ -55,9 +55,11 @@ const DEFAULT_TREND: TrafficData["trend"] = {
 };
 
 const Traffic = () => {
-  const [searchDateRange, setSearchDateRange] = useState<[string, string]>(
-    getDefaultRange("today"),
-  );
+  const { preset, dateRange: searchDateRange, onDateChange } =
+    useDateFilterSessionStorage({
+      storageKey: "traffic",
+      defaultPreset: "today",
+    });
   const [trafficData, setTrafficData] = useState<TrafficData | null>(null);
   const isSingleDay = useMemo(
     () =>
@@ -85,7 +87,11 @@ const Traffic = () => {
   return (
     <div className={styles.page}>
       <div className={styles.selectBox}>
-        <DateSelect onChange={setSearchDateRange} defaultPreset="today" />
+        <DateSelect
+          onChange={onDateChange}
+          preset={preset}
+          value={searchDateRange}
+        />
       </div>
       <div className={styles.chartContainer}>
         <div className={styles.chartCard}>
