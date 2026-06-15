@@ -14,6 +14,30 @@ interface UserAgentDistribution {
   deviceDistribution: { name: string; value: number }[];
 }
 
+type ErrorTrendItem = Pick<
+  DailyStat,
+  | 'date'
+  | 'jsErrorCount'
+  | 'promiseErrorCount'
+  | 'resourceErrorCount'
+  | 'ajaxErrorCount'
+  | 'networkErrorCount'
+  | 'otherErrorCount'
+>;
+
+type HourlyErrorTrendRow = {
+  hour: string;
+  count: string;
+  errorType: string;
+};
+
+type ErrorListRow = {
+  id: string;
+  message: string;
+  errorType: string;
+  lastSeen: string;
+};
+
 @Injectable()
 export class DashboardService {
   constructor(
@@ -325,28 +349,27 @@ export class DashboardService {
     const { start, end } = this.getDateRange(query);
     const isHourly = query.granularity === 'hour' || start === end;
 
-    const [trendRaw, hourlyTrendRaw, list] = await Promise.all([
+    const [trendRaw, hourlyTrendRaw, list]: [
+      ErrorTrendItem[],
+      HourlyErrorTrendRow[],
+      ErrorListRow[],
+    ] = await Promise.all([
       isHourly
-        ? Promise.resolve(
-            [] as Pick<
-              DailyStat,
-              | 'date'
-              | 'jsErrorCount'
-              | 'promiseErrorCount'
-              | 'resourceErrorCount'
-            >[],
-          )
-        : this.dailyStatRepository
+        ? Promise.resolve([] as ErrorTrendItem[])
+        : (this.dailyStatRepository
             .createQueryBuilder('ds')
             .select([
               'ds.jsErrorCount',
               'ds.promiseErrorCount',
               'ds.resourceErrorCount',
+              'ds.ajaxErrorCount',
+              'ds.networkErrorCount',
+              'ds.otherErrorCount',
               'ds.date',
             ])
             .where('ds.date >= :start AND ds.date <= :end', { start, end })
             .orderBy('ds.date', 'ASC')
-            .getMany(),
+            .getMany() as Promise<ErrorTrendItem[]>),
 
       isHourly
         ? this.errorRepository
@@ -361,14 +384,8 @@ export class DashboardService {
             .groupBy('hour')
             .addGroupBy('err.errorType')
             .orderBy('hour', 'ASC')
-            .getRawMany<{
-              hour: string;
-              count: string;
-              errorType: string;
-            }>()
-        : Promise.resolve(
-            [] as { hour: string; count: string; errorType: string }[],
-          ),
+            .getRawMany<HourlyErrorTrendRow>()
+        : Promise.resolve([] as HourlyErrorTrendRow[]),
 
       // 错误列表
       this.errorRepository
@@ -382,12 +399,7 @@ export class DashboardService {
           { start, end },
         )
         .orderBy('err.createTime', 'DESC')
-        .getRawMany<{
-          id: string;
-          message: string;
-          errorType: string;
-          lastSeen: string;
-        }>(),
+        .getRawMany<ErrorListRow>(),
     ]);
 
     let trend: {
@@ -395,6 +407,9 @@ export class DashboardService {
       jsErrorCountData: { name: string; data: number[] };
       promiseErrorCountData: { name: string; data: number[] };
       resourceErrorCountData: { name: string; data: number[] };
+      ajaxErrorCountData: { name: string; data: number[] };
+      networkErrorCountData: { name: string; data: number[] };
+      otherErrorCountData: { name: string; data: number[] };
     };
     if (isHourly) {
       const hourlyMap = new Map<
@@ -403,22 +418,38 @@ export class DashboardService {
           jsErrorCount: number;
           promiseErrorCount: number;
           resourceErrorCount: number;
+          ajaxErrorCount: number;
+          networkErrorCount: number;
+          otherErrorCount: number;
         }
       >();
 
+      const defaultHourly = {
+        jsErrorCount: 0,
+        promiseErrorCount: 0,
+        resourceErrorCount: 0,
+        ajaxErrorCount: 0,
+        networkErrorCount: 0,
+        otherErrorCount: 0,
+      };
+
       for (const r of hourlyTrendRaw) {
         const hour = Number(r.hour);
-        const current = hourlyMap.get(hour) ?? {
-          jsErrorCount: 0,
-          promiseErrorCount: 0,
-          resourceErrorCount: 0,
-        };
-        if (r.errorType === 'js') {
-          current.jsErrorCount = Number(r.count);
+        const current = hourlyMap.get(hour) ?? { ...defaultHourly };
+        const count = Number(r.count);
+
+        if (r.errorType === 'js' || r.errorType === 'framework') {
+          current.jsErrorCount += count;
         } else if (r.errorType === 'promise') {
-          current.promiseErrorCount = Number(r.count);
+          current.promiseErrorCount = count;
         } else if (r.errorType === 'resource') {
-          current.resourceErrorCount = Number(r.count);
+          current.resourceErrorCount = count;
+        } else if (r.errorType === 'ajax') {
+          current.ajaxErrorCount = count;
+        } else if (r.errorType === 'network') {
+          current.networkErrorCount = count;
+        } else {
+          current.otherErrorCount += count;
         }
         hourlyMap.set(hour, current);
       }
@@ -446,6 +477,27 @@ export class DashboardService {
             (_, i) => hourlyMap.get(i)?.resourceErrorCount ?? 0,
           ),
         },
+        ajaxErrorCountData: {
+          name: '接口错误数',
+          data: Array.from(
+            { length: 24 },
+            (_, i) => hourlyMap.get(i)?.ajaxErrorCount ?? 0,
+          ),
+        },
+        networkErrorCountData: {
+          name: '网络错误数',
+          data: Array.from(
+            { length: 24 },
+            (_, i) => hourlyMap.get(i)?.networkErrorCount ?? 0,
+          ),
+        },
+        otherErrorCountData: {
+          name: '其他错误数',
+          data: Array.from(
+            { length: 24 },
+            (_, i) => hourlyMap.get(i)?.otherErrorCount ?? 0,
+          ),
+        },
       };
     } else {
       trend = {
@@ -461,6 +513,18 @@ export class DashboardService {
         resourceErrorCountData: {
           name: '资源错误数',
           data: trendRaw.map((item) => item.resourceErrorCount),
+        },
+        ajaxErrorCountData: {
+          name: '接口错误数',
+          data: trendRaw.map((item) => item.ajaxErrorCount),
+        },
+        networkErrorCountData: {
+          name: '网络错误数',
+          data: trendRaw.map((item) => item.networkErrorCount),
+        },
+        otherErrorCountData: {
+          name: '其他错误数',
+          data: trendRaw.map((item) => item.otherErrorCount),
         },
       };
     }
@@ -479,7 +543,8 @@ export class DashboardService {
   }
 
   async getErrorDetail(id: string) {
-    return this.errorRepository.findOneBy({ id });
+    const error = await this.errorRepository.findOneBy({ id });
+    return { data: error };
   }
 
   async getUptime(query: DashboardQueryDto) {

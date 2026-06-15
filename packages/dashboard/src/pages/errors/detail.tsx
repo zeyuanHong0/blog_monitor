@@ -1,39 +1,23 @@
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Descriptions, Tag, theme } from "antd";
+import { Descriptions, Spin, Result, Button, Tag, theme } from "antd";
 import { ArrowLeft } from "lucide-react";
+import dayjs from "dayjs";
+
+import { getErrorDetail } from "@/api/errors";
+import type { ErrorDetail } from "@/api/errors/types";
 
 import styles from "./detail.module.scss";
 
-const errorTypeMap: Record<
-  string,
-  { color: string; label: string }
-> = {
-  js: { color: "red", label: "JS 错误" },
-  promise: { color: "orange", label: "Promise 错误" },
-  resource: { color: "green", label: "资源加载错误" },
-  ajax: { color: "blue", label: "Ajax 错误" },
-  network: { color: "purple", label: "网络错误" },
-  framework: { color: "cyan", label: "框架错误" },
-};
-
-const mockErrorDetail = {
-  id: "550e8400-e29b-41d4-a716-446655440000",
-  appId: "blog-app",
-  errorType: "js",
-  message: "Cannot read properties of undefined (reading 'map')",
-  stack: `TypeError: Cannot read properties of undefined (reading 'map')
-    at PostList (webpack:///src/components/PostList.tsx:24:18)
-    at renderWithHooks (webpack:///node_modules/react-dom/cjs/react-dom.development.js:14985:18)
-    at mountIndeterminateComponent (webpack:///node_modules/react-dom/cjs/react-dom.development.js:17811:13)
-    at beginWork (webpack:///node_modules/react-dom/cjs/react-dom.development.js:19049:16)
-    at HTMLUnknownElement.callCallback (webpack:///node_modules/react-dom/cjs/react-dom.development.js:3945:14)`,
-  filename: "assets/index-a1b2c3d4.js",
-  lineno: 1234,
-  colno: 56,
-  resourceUrl: null,
-  url: "/posts/react-hooks-guide",
-  sessionId: "sess_abc123def456",
-  createTime: "2026-06-07 14:32:18",
+const errorTypeMap: Record<string, { color: string; label: string }> = {
+  js: { color: "red", label: "JS" },
+  promise: { color: "orange", label: "Promise" },
+  resource: { color: "green", label: "资源" },
+  ajax: { color: "blue", label: "Ajax" },
+  network: { color: "purple", label: "网络" },
+  framework: { color: "cyan", label: "框架" },
+  custom: { color: "geekblue", label: "自定义" },
+  unknown: { color: "default", label: "未知" },
 };
 
 const ErrorDetail = () => {
@@ -41,19 +25,85 @@ const ErrorDetail = () => {
   const navigate = useNavigate();
   const { token } = theme.useToken();
 
-  // TODO: 接入 API 后根据 id 请求真实数据
-  const detail = mockErrorDetail;
-  const typeInfo = errorTypeMap[detail.errorType] ?? {
+  const [errorDetail, setErrorDetail] = useState<ErrorDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
+
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLoading(true);
+    setFetchError(false);
+    getErrorDetail(id)
+      .then((res) => {
+        if (cancelled) return;
+        setErrorDetail(res.data);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setFetchError(true);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  if (!id) {
+    return (
+      <Result
+        status="error"
+        title="参数错误"
+        subTitle="缺少错误 ID"
+        extra={
+          <Button onClick={() => navigate("/errors")}>返回错误列表</Button>
+        }
+      />
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className={styles.page}>
+        <Spin size="large" style={{ display: "block", marginTop: 120 }} />
+      </div>
+    );
+  }
+
+  if (fetchError || !errorDetail) {
+    return (
+      <Result
+        status="error"
+        title="加载失败"
+        subTitle="获取错误详情失败，请稍后重试"
+        extra={
+          <Button onClick={() => navigate("/errors", { replace: true })}>
+            返回错误列表
+          </Button>
+        }
+      />
+    );
+  }
+
+  const typeInfo = errorTypeMap[errorDetail.errorType] ?? {
     color: "default",
-    label: detail.errorType,
+    label: errorDetail.errorType,
   };
+
+  const framework = errorDetail.framework;
+  const isFrameworkError = errorDetail.errorType === "framework" && framework;
 
   return (
     <div className={styles.page}>
       <div className={styles.header}>
         <span
           className={styles.backBtn}
-          onClick={() => navigate("/errors")}
+          onClick={() => navigate("/errors", { replace: true })}
         >
           <ArrowLeft size={20} color={token.colorText} />
         </span>
@@ -61,8 +111,49 @@ const ErrorDetail = () => {
       </div>
 
       <div className={styles.message} style={{ color: token.colorText }}>
-        {detail.message}
+        {errorDetail.message}
       </div>
+
+      {isFrameworkError && (
+        <div className={styles.section}>
+          <div
+            className={styles.sectionTitle}
+            style={{ color: token.colorText }}
+          >
+            框架信息
+          </div>
+          <div
+            className={styles.contextCard}
+            style={{
+              backgroundColor: token.colorBgContainer,
+              border: `1px solid ${token.colorBorderSecondary}`,
+            }}
+          >
+            <Descriptions column={1} size="small">
+              <Descriptions.Item label="框架">
+                {framework.name === "react" ? "React" : "Vue"}
+              </Descriptions.Item>
+              {framework.componentName && (
+                <Descriptions.Item label="组件名称">
+                  {framework.componentName}
+                </Descriptions.Item>
+              )}
+              {framework.hook && (
+                <Descriptions.Item label="Hook">
+                  {framework.hook}
+                </Descriptions.Item>
+              )}
+              {framework.componentStack && (
+                <Descriptions.Item label="组件堆栈">
+                  <pre style={{ margin: 0, whiteSpace: "pre-wrap" }}>
+                    {framework.componentStack}
+                  </pre>
+                </Descriptions.Item>
+              )}
+            </Descriptions>
+          </div>
+        </div>
+      )}
 
       <div className={styles.section}>
         <div className={styles.sectionTitle} style={{ color: token.colorText }}>
@@ -72,9 +163,15 @@ const ErrorDetail = () => {
           className={styles.stackBlock}
           style={{ backgroundColor: token.colorFillQuaternary }}
         >
-          <pre>
-            <code style={{ color: token.colorText }}>{detail.stack}</code>
-          </pre>
+          {errorDetail.stack ? (
+            <pre>
+              <code style={{ color: token.colorText }}>
+                {errorDetail.stack}
+              </code>
+            </pre>
+          ) : (
+            <span style={{ color: token.colorTextSecondary }}>无堆栈信息</span>
+          )}
         </div>
       </div>
 
@@ -91,24 +188,30 @@ const ErrorDetail = () => {
         >
           <Descriptions column={1} size="small">
             <Descriptions.Item label="页面 URL">
-              {detail.url}
+              {errorDetail.url}
             </Descriptions.Item>
-            <Descriptions.Item label="文件名">
-              {detail.filename}
-            </Descriptions.Item>
-            <Descriptions.Item label="行号">
-              {detail.lineno}
-            </Descriptions.Item>
-            <Descriptions.Item label="列号">
-              {detail.colno}
-            </Descriptions.Item>
-            {detail.errorType === "resource" && (
+            {errorDetail.filename && (
+              <Descriptions.Item label="文件名">
+                {errorDetail.filename}
+              </Descriptions.Item>
+            )}
+            {errorDetail.lineno != null && (
+              <Descriptions.Item label="行号">
+                {errorDetail.lineno}
+              </Descriptions.Item>
+            )}
+            {errorDetail.colno != null && (
+              <Descriptions.Item label="列号">
+                {errorDetail.colno}
+              </Descriptions.Item>
+            )}
+            {errorDetail.resourceUrl && (
               <Descriptions.Item label="资源地址">
-                {detail.resourceUrl ?? "-"}
+                {errorDetail.resourceUrl}
               </Descriptions.Item>
             )}
             <Descriptions.Item label="发生时间">
-              {detail.createTime}
+              {dayjs(errorDetail.createTime).format("YYYY-MM-DD HH:mm:ss")}
             </Descriptions.Item>
           </Descriptions>
         </div>

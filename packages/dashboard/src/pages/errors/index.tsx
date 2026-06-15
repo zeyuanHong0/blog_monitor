@@ -26,6 +26,8 @@ const errorTypeMap: Record<string, { color: string; label: string }> = {
   ajax: { color: "blue", label: "Ajax" },
   network: { color: "purple", label: "网络" },
   framework: { color: "cyan", label: "框架" },
+  custom: { color: "geekblue", label: "自定义" },
+  unknown: { color: "default", label: "未知" },
 };
 
 const buildColumns = (loading: boolean) => [
@@ -68,8 +70,11 @@ const buildColumns = (loading: boolean) => [
 const DEFAULT_TREND: ErrorsData["trend"] = {
   dateList: [] as string[],
   jsErrorCountData: { name: "JS错误数", data: [] as number[] },
-  resourceErrorCountData: { name: "资源错误数", data: [] as number[] },
   promiseErrorCountData: { name: "Promise错误数", data: [] as number[] },
+  resourceErrorCountData: { name: "资源错误数", data: [] as number[] },
+  ajaxErrorCountData: { name: "接口错误数", data: [] as number[] },
+  networkErrorCountData: { name: "网络错误数", data: [] as number[] },
+  otherErrorCountData: { name: "其他错误数", data: [] as number[] },
 };
 
 const Errors = () => {
@@ -117,6 +122,9 @@ const Errors = () => {
               trend.jsErrorCountData,
               trend.promiseErrorCountData,
               trend.resourceErrorCountData,
+              trend.ajaxErrorCountData,
+              trend.networkErrorCountData,
+              trend.otherErrorCountData,
             ]}
             style={{ height: 350 }}
           />

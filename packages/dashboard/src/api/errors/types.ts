@@ -25,6 +25,9 @@ export interface TrendData {
   jsErrorCountData: TrendSeries;
   promiseErrorCountData: TrendSeries;
   resourceErrorCountData: TrendSeries;
+  ajaxErrorCountData: TrendSeries;
+  networkErrorCountData: TrendSeries;
+  otherErrorCountData: TrendSeries;
 }
 
 export interface ErrorsData {
@@ -34,6 +37,31 @@ export interface ErrorsData {
 
 export interface ErrorsResponse extends BaseResponse {
   data: ErrorsData;
+}
+
+export interface ErrorDetail {
+  id: string;
+  appId: string;
+  errorType: string;
+  message: string;
+  stack?: string | null;
+  filename?: string | null;
+  lineno?: number | null;
+  colno?: number | null;
+  resourceUrl?: string | null;
+  framework?: {
+    name: 'react' | 'vue';
+    componentName?: string;
+    componentStack?: string;
+    hook?: string;
+  } | null;
+  url: string;
+  sessionId: string;
+  createTime: string;
+}
+
+export interface ErrorDetailResponse extends BaseResponse {
+  data: ErrorDetail;
 }
 
 export interface ErrorsSearchParams {

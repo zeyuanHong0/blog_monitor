@@ -48,6 +48,15 @@ export class DailyStat {
   @Column({ default: 0, comment: '资源加载错误数' })
   resourceErrorCount!: number;
 
+  @Column({ default: 0, comment: 'Ajax请求错误数' })
+  ajaxErrorCount!: number;
+
+  @Column({ default: 0, comment: '网络请求错误数' })
+  networkErrorCount!: number;
+
+  @Column({ default: 0, comment: '其他错误数（自定义+未知）' })
+  otherErrorCount!: number;
+
   @Column('json', {
     nullable: true,
     comment: '访问量Top页面（[{ url, count }]）',

@@ -89,7 +89,7 @@ export class AggregateService {
       .createQueryBuilder('err')
       .select('COUNT(*)', 'errorCount')
       .addSelect(
-        `SUM(CASE WHEN err.errorType = '${ErrorType.JS}' THEN 1 ELSE 0 END)`,
+        `SUM(CASE WHEN err.errorType IN ('${ErrorType.JS}', '${ErrorType.FRAMEWORK}') THEN 1 ELSE 0 END)`,
         'jsErrorCount',
       )
       .addSelect(
@@ -100,12 +100,27 @@ export class AggregateService {
         `SUM(CASE WHEN err.errorType = '${ErrorType.RESOURCE}' THEN 1 ELSE 0 END)`,
         'resourceErrorCount',
       )
+      .addSelect(
+        `SUM(CASE WHEN err.errorType = '${ErrorType.AJAX}' THEN 1 ELSE 0 END)`,
+        'ajaxErrorCount',
+      )
+      .addSelect(
+        `SUM(CASE WHEN err.errorType = '${ErrorType.NETWORK}' THEN 1 ELSE 0 END)`,
+        'networkErrorCount',
+      )
+      .addSelect(
+        `SUM(CASE WHEN err.errorType IN ('${ErrorType.CUSTOM}', '${ErrorType.UNKNOWN}') THEN 1 ELSE 0 END)`,
+        'otherErrorCount',
+      )
       .where('DATE(err.createTime) = :date', { date: dateStr })
       .getRawOne<{
         errorCount: string;
         jsErrorCount: string;
         promiseErrorCount: string;
         resourceErrorCount: string;
+        ajaxErrorCount: string;
+        networkErrorCount: string;
+        otherErrorCount: string;
       }>();
 
     return {
@@ -113,6 +128,9 @@ export class AggregateService {
       jsErrorCount: Number(res?.jsErrorCount ?? 0),
       promiseErrorCount: Number(res?.promiseErrorCount ?? 0),
       resourceErrorCount: Number(res?.resourceErrorCount ?? 0),
+      ajaxErrorCount: Number(res?.ajaxErrorCount ?? 0),
+      networkErrorCount: Number(res?.networkErrorCount ?? 0),
+      otherErrorCount: Number(res?.otherErrorCount ?? 0),
     };
   }
 
