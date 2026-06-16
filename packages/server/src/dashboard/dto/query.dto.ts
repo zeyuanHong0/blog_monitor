@@ -12,4 +12,8 @@ export class DashboardQueryDto {
   @IsIn(['hour', 'day'])
   @IsOptional()
   granularity?: 'hour' | 'day';
+
+  @IsIn(['soft', 'hard', 'all'])
+  @IsOptional()
+  navigationType?: 'soft' | 'hard' | 'all';
 }

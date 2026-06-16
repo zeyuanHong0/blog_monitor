@@ -54,13 +54,13 @@ const VitalCard: React.FC<VitalCardProps> = (props) => {
         borderColor: token.colorBorderSecondary,
       }}
     >
+      <Tag color={tagColorMap[status]} bordered className={styles.statusTag}>
+        {tagLabelMap[status]}
+      </Tag>
       <div className={styles.header}>
         <span className={styles.title} style={{ color: token.colorText }}>
           {title}
         </span>
-        <Tag color={tagColorMap[status]} bordered>
-          {tagLabelMap[status]}
-        </Tag>
       </div>
       <div
         className={styles.description}

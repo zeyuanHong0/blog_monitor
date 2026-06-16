@@ -621,59 +621,280 @@ export class DashboardService {
 
   async getPerformance(query: DashboardQueryDto) {
     const { start, end } = this.getDateRange(query);
+    const navigationType = query.navigationType || 'soft';
+    const isSingleDay = start === end;
 
-    const [trend, slowPages] = await Promise.all([
-      // 性能指标趋势
-      this.dailyStatRepository
-        .createQueryBuilder('ds')
-        .select([
-          'ds.date',
-          'ds.avgFcp',
-          'ds.avgLcp',
-          'ds.avgInp',
-          'ds.avgCls',
-          'ds.avgSoftNavLcp',
-          'ds.avgSoftNavDuration',
-        ])
-        .where('ds.date >= :start AND ds.date <= :end', { start, end })
-        .orderBy('ds.date', 'ASC')
-        .getMany(),
-
-      // 慢页面排行
-      this.performanceRepository
-        .createQueryBuilder('perf')
-        .select('perf.url', 'url')
-        .addSelect('AVG(perf.lcp)', 'avgLcp')
-        .addSelect('AVG(perf.fcp)', 'avgFcp')
-        .addSelect('AVG(perf.inp)', 'avgInp')
-        .addSelect('COUNT(*)', 'sampleCount')
-        .where(
-          'DATE(perf.createTime) >= :start AND DATE(perf.createTime) <= :end AND perf.lcp IS NOT NULL',
-          { start, end },
-        )
-        .groupBy('perf.url')
-        .orderBy('avgLcp', 'DESC')
-        .limit(10)
-        .getRawMany<{
-          url: string;
-          avgLcp: string;
-          avgFcp: string;
-          avgInp: string;
-          sampleCount: string;
-        }>(),
+    const [cards, trend, slowPages] = await Promise.all([
+      this.getPerformanceCards(start, end, navigationType),
+      this.getPerformanceTrend(start, end, navigationType, isSingleDay),
+      this.getSlowPages(start, end, navigationType),
     ]);
 
+    return { data: { cards, trend, slowPages } };
+  }
+
+  private async getPerformanceCards(
+    start: string,
+    end: string,
+    navigationType: string,
+  ) {
+    const qb = this.performanceRepository
+      .createQueryBuilder('perf')
+      .where(
+        'DATE(perf.createTime) >= :start AND DATE(perf.createTime) <= :end',
+        { start, end },
+      );
+
+    if (navigationType !== 'all') {
+      qb.andWhere('perf.navigationType = :type', { type: navigationType });
+    }
+
+    if (navigationType === 'soft') {
+      qb.select('AVG(perf.lcp)', 'avgLcp')
+        .addSelect('AVG(perf.cls)', 'avgCls')
+        .addSelect('AVG(perf.inp)', 'avgInp')
+        .addSelect('AVG(perf.navigationDuration)', 'avgNavDuration')
+        .addSelect('COUNT(*)', 'sampleCount');
+    } else if (navigationType === 'hard') {
+      qb.select('AVG(perf.ttfb)', 'avgTtfb')
+        .addSelect('AVG(perf.fcp)', 'avgFcp')
+        .addSelect('AVG(perf.lcp)', 'avgLcp')
+        .addSelect('AVG(perf.cls)', 'avgCls')
+        .addSelect('COUNT(*)', 'sampleCount');
+    } else {
+      qb.select('AVG(perf.lcp)', 'avgLcp')
+        .addSelect('AVG(perf.cls)', 'avgCls')
+        .addSelect('AVG(perf.inp)', 'avgInp')
+        .addSelect('COUNT(*)', 'sampleCount');
+    }
+
+    const raw = await qb.getRawOne<
+      Record<string, string | null> & { sampleCount: string }
+    >();
+
+    const twoDecimal = (v: string | null | undefined) =>
+      v !== null && v !== undefined ? Math.round(Number(v) * 100) / 100 : null;
+
+    if (navigationType === 'soft') {
+      return {
+        avgLcp: twoDecimal(raw?.avgLcp),
+        avgCls: twoDecimal(raw?.avgCls),
+        avgInp: twoDecimal(raw?.avgInp),
+        avgNavDuration: twoDecimal(raw?.avgNavDuration),
+        sampleCount: Number(raw?.sampleCount ?? 0),
+      };
+    }
+    if (navigationType === 'hard') {
+      return {
+        avgTtfb: twoDecimal(raw?.avgTtfb),
+        avgFcp: twoDecimal(raw?.avgFcp),
+        avgLcp: twoDecimal(raw?.avgLcp),
+        avgCls: twoDecimal(raw?.avgCls),
+        sampleCount: Number(raw?.sampleCount ?? 0),
+      };
+    }
     return {
-      data: {
-        trend,
-        slowPages: slowPages.map((r) => ({
-          url: r.url,
-          avgLcp: r.avgLcp !== null ? Math.round(Number(r.avgLcp)) : null,
-          avgFcp: r.avgFcp !== null ? Math.round(Number(r.avgFcp)) : null,
-          avgInp: r.avgInp !== null ? Math.round(Number(r.avgInp)) : null,
-          sampleCount: Number(r.sampleCount),
-        })),
-      },
+      avgLcp: twoDecimal(raw?.avgLcp),
+      avgCls: twoDecimal(raw?.avgCls),
+      avgInp: twoDecimal(raw?.avgInp),
+      sampleCount: Number(raw?.sampleCount ?? 0),
     };
+  }
+
+  private async getPerformanceTrend(
+    start: string,
+    end: string,
+    navigationType: string,
+    isSingleDay: boolean,
+  ) {
+    if (isSingleDay) {
+      return this.getPerformanceTrendHourly(start, end, navigationType);
+    }
+    return this.getPerformanceTrendDaily(start, end, navigationType);
+  }
+
+  private async getPerformanceTrendHourly(
+    start: string,
+    end: string,
+    navigationType: string,
+  ) {
+    const metricFields = this.getTrendMetrics(navigationType);
+    const qb = this.performanceRepository
+      .createQueryBuilder('perf')
+      .select('HOUR(perf.createTime)', 'hour');
+
+    for (const { expr, alias } of metricFields) {
+      qb.addSelect(`AVG(${expr})`, alias);
+    }
+
+    qb.where(
+      'DATE(perf.createTime) >= :start AND DATE(perf.createTime) <= :end',
+      { start, end },
+    );
+
+    if (navigationType !== 'all') {
+      qb.andWhere('perf.navigationType = :type', { type: navigationType });
+    }
+
+    qb.groupBy('HOUR(perf.createTime)').orderBy('hour', 'ASC');
+
+    const rows = await qb.getRawMany<Record<string, string>>();
+
+    const round2 = (v: string) => Math.round(Number(v) * 100) / 100;
+
+    const series = metricFields.map(({ alias }) => {
+      const map = new Map(rows.map((r) => [Number(r.hour), round2(r[alias])]));
+      return {
+        name: alias,
+        data: Array.from({ length: 24 }, (_, i) => map.get(i) ?? 0),
+      };
+    });
+
+    return {
+      xData: Array.from({ length: 24 }, (_, i) => `${i}时`),
+      series,
+    };
+  }
+
+  private async getPerformanceTrendDaily(
+    start: string,
+    end: string,
+    navigationType: string,
+  ) {
+    const metricFields = this.getTrendMetrics(navigationType);
+    const qb = this.performanceRepository
+      .createQueryBuilder('perf')
+      .select('DATE(perf.createTime)', 'date');
+
+    for (const { expr, alias } of metricFields) {
+      qb.addSelect(`AVG(${expr})`, alias);
+    }
+
+    qb.where(
+      'DATE(perf.createTime) >= :start AND DATE(perf.createTime) <= :end',
+      { start, end },
+    );
+
+    if (navigationType !== 'all') {
+      qb.andWhere('perf.navigationType = :type', { type: navigationType });
+    }
+
+    qb.groupBy('DATE(perf.createTime)').orderBy('date', 'ASC');
+
+    const rows = await qb.getRawMany<Record<string, string>>();
+
+    const round2 = (v: string) => Math.round(Number(v) * 100) / 100;
+
+    const series = metricFields.map(({ alias }) => ({
+      name: alias,
+      data: rows.map((r) => round2(r[alias])),
+    }));
+
+    return {
+      xData: rows.map((r) => dayjs(r.date).format('YYYY-MM-DD')),
+      series,
+    };
+  }
+
+  private getTrendMetrics(
+    navigationType: string,
+  ): { expr: string; alias: string }[] {
+    switch (navigationType) {
+      case 'soft':
+        return [
+          { expr: 'perf.lcp', alias: 'avgLcp' },
+          { expr: 'perf.cls', alias: 'avgCls' },
+          { expr: 'perf.inp', alias: 'avgInp' },
+          { expr: 'perf.navigationDuration', alias: 'avgNavDuration' },
+        ];
+      case 'hard':
+        return [
+          { expr: 'perf.ttfb', alias: 'avgTtfb' },
+          { expr: 'perf.fcp', alias: 'avgFcp' },
+          { expr: 'perf.lcp', alias: 'avgLcp' },
+          { expr: 'perf.cls', alias: 'avgCls' },
+        ];
+      default:
+        return [
+          { expr: 'perf.lcp', alias: 'avgLcp' },
+          { expr: 'perf.cls', alias: 'avgCls' },
+          { expr: 'perf.inp', alias: 'avgInp' },
+        ];
+    }
+  }
+
+  private async getSlowPages(
+    start: string,
+    end: string,
+    navigationType: string,
+  ) {
+    const qb = this.performanceRepository
+      .createQueryBuilder('perf')
+      .where(
+        'DATE(perf.createTime) >= :start AND DATE(perf.createTime) <= :end AND perf.lcp IS NOT NULL',
+        { start, end },
+      );
+
+    if (navigationType !== 'all') {
+      qb.andWhere('perf.navigationType = :type', { type: navigationType });
+    }
+
+    if (navigationType === 'soft') {
+      qb.select('perf.fromUrl', 'fromUrl')
+        .addSelect('perf.url', 'url')
+        .addSelect('AVG(perf.lcp)', 'avgLcp')
+        .addSelect('AVG(perf.navigationDuration)', 'avgNavDuration')
+        .addSelect('COUNT(*)', 'sampleCount')
+        .groupBy('perf.fromUrl')
+        .addGroupBy('perf.url');
+    } else if (navigationType === 'hard') {
+      qb.select('perf.url', 'url')
+        .addSelect('AVG(perf.lcp)', 'avgLcp')
+        .addSelect('AVG(perf.fcp)', 'avgFcp')
+        .addSelect('AVG(perf.ttfb)', 'avgTtfb')
+        .addSelect('COUNT(*)', 'sampleCount')
+        .groupBy('perf.url');
+    } else {
+      qb.select('perf.url', 'url')
+        .addSelect('AVG(perf.lcp)', 'avgLcp')
+        .addSelect('AVG(perf.inp)', 'avgInp')
+        .addSelect('AVG(perf.fcp)', 'avgFcp')
+        .addSelect('COUNT(*)', 'sampleCount')
+        .groupBy('perf.url');
+    }
+
+    qb.orderBy('avgLcp', 'DESC').limit(10);
+
+    const raw = await qb.getRawMany<Record<string, string>>();
+
+    const twoDecimal = (v: string | null | undefined) =>
+      v !== null && v !== undefined ? Math.round(Number(v) * 100) / 100 : null;
+
+    return raw.map((r) => {
+      const base = {
+        url: r.url,
+        avgLcp: twoDecimal(r.avgLcp),
+        sampleCount: Number(r.sampleCount),
+      };
+      if (navigationType === 'soft') {
+        return {
+          ...base,
+          fromUrl: r.fromUrl || '/',
+          avgNavDuration: twoDecimal(r.avgNavDuration),
+        };
+      }
+      if (navigationType === 'hard') {
+        return {
+          ...base,
+          avgFcp: twoDecimal(r.avgFcp),
+          avgTtfb: twoDecimal(r.avgTtfb),
+        };
+      }
+      return {
+        ...base,
+        avgFcp: twoDecimal(r.avgFcp),
+        avgInp: twoDecimal(r.avgInp),
+      };
+    });
   }
 }

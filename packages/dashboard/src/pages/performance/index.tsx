@@ -1,150 +1,331 @@
-import { useState } from "react";
-import { Select, Table } from "antd";
+import { useEffect, useMemo, useState } from "react";
+import { Select, Table, Skeleton } from "antd";
+import dayjs from "dayjs";
+
+import { getPerformance } from "@/api/performance";
+import type {
+  PerformanceData,
+  PerformanceCards,
+  SlowPage,
+} from "@/api/performance/types";
+import { useDateFilterSessionStorage } from "@/hooks/useDateFilterSessionStorage";
 
 import styles from "./index.module.scss";
 import DateSelect from "@/components/DateSelect";
 import { LineChart } from "@/components/Charts";
 import VitalCard from "@/components/VitalCard";
 
-// TODO: 接入 API 后，根据 navigationType 筛选器值联动以下内容：
-// - 软导航（默认）: 卡片 LCP/CLS/INP/Nav Duration，折线图 series 同理
-// - 硬导航: 卡片换成 TTFB/FCP/LCP/CLS，折线图 series 对应切换，表格去掉 fromUrl 列改为按 URL 排慢页面
-// - 全部: 展示共有指标 LCP/CLS/INP，或做硬/软对比
-const cardList = [
+type CardConfig = {
+  key: keyof PerformanceCards;
+  title: string;
+  description: string;
+  unit: string;
+  thresholds: [number, number];
+  max: number;
+};
+
+const softCardConfigs: CardConfig[] = [
   {
+    key: "avgLcp",
     title: "LCP",
     description: "路由切换后最大内容绘制",
-    value: 2200,
     unit: "ms",
-    thresholds: [2500, 4000] as [number, number],
+    thresholds: [2500, 4000],
     max: 5000,
   },
   {
+    key: "avgCls",
     title: "CLS",
     description: "路由切换期间布局偏移",
-    value: 0.08,
     unit: "",
-    thresholds: [0.1, 0.25] as [number, number],
+    thresholds: [0.1, 0.25],
     max: 0.5,
   },
   {
+    key: "avgInp",
     title: "INP",
     description: "交互延迟 (P98)",
-    value: 150,
     unit: "ms",
-    thresholds: [200, 500] as [number, number],
+    thresholds: [200, 500],
     max: 800,
   },
   {
+    key: "avgNavDuration",
     title: "Nav Duration",
     description: "DOM 稳定耗时",
-    value: 800,
     unit: "ms",
-    thresholds: [1000, 3000] as [number, number],
+    thresholds: [1000, 3000],
     max: 5000,
   },
 ];
 
-const mockSlowRoutes = [
+const hardCardConfigs: CardConfig[] = [
   {
-    fromUrl: "/",
-    url: "/post/react-performance-tips",
-    avgLcp: 4800,
-    avgNavDuration: 2200,
-    sampleCount: 312,
+    key: "avgTtfb",
+    title: "TTFB",
+    description: "首字节时间",
+    unit: "ms",
+    thresholds: [800, 1800],
+    max: 3000,
   },
   {
-    fromUrl: "/category/frontend",
-    url: "/post/deep-dive-into-hooks",
-    avgLcp: 4500,
-    avgNavDuration: 1950,
-    sampleCount: 278,
+    key: "avgFcp",
+    title: "FCP",
+    description: "首次内容绘制",
+    unit: "ms",
+    thresholds: [1800, 3000],
+    max: 5000,
   },
   {
-    fromUrl: "/",
-    url: "/post/css-grid-complete-guide",
-    avgLcp: 4200,
-    avgNavDuration: 1800,
-    sampleCount: 456,
+    key: "avgLcp",
+    title: "LCP",
+    description: "最大内容绘制",
+    unit: "ms",
+    thresholds: [2500, 4000],
+    max: 5000,
   },
   {
-    fromUrl: "/tag/typescript",
-    url: "/post/advanced-typescript-patterns",
-    avgLcp: 3900,
-    avgNavDuration: 1650,
-    sampleCount: 189,
-  },
-  {
-    fromUrl: "/category/backend",
-    url: "/post/nodejs-stream-handbook",
-    avgLcp: 3650,
-    avgNavDuration: 1500,
-    sampleCount: 534,
-  },
-  {
-    fromUrl: "/",
-    url: "/post/web-vitals-explained",
-    avgLcp: 3400,
-    avgNavDuration: 1350,
-    sampleCount: 421,
-  },
-  {
-    fromUrl: "/post/react-performance-tips",
-    url: "/post/react-concurrent-mode",
-    avgLcp: 3150,
-    avgNavDuration: 1200,
-    sampleCount: 267,
-  },
-  {
-    fromUrl: "/category/devops",
-    url: "/post/docker-multi-stage-builds",
-    avgLcp: 2950,
-    avgNavDuration: 1100,
-    sampleCount: 345,
-  },
-  {
-    fromUrl: "/",
-    url: "/category/frontend",
-    avgLcp: 2700,
-    avgNavDuration: 950,
-    sampleCount: 623,
-  },
-  {
-    fromUrl: "/post/css-grid-complete-guide",
-    url: "/post/responsive-design-2024",
-    avgLcp: 2500,
-    avgNavDuration: 880,
-    sampleCount: 198,
+    key: "avgCls",
+    title: "CLS",
+    description: "累计布局偏移",
+    unit: "",
+    thresholds: [0.1, 0.25],
+    max: 0.5,
   },
 ];
 
-const slowRoutesColumns = [
+const allCardConfigs: CardConfig[] = [
   {
-    title: "来源路由",
-    dataIndex: "fromUrl",
+    key: "avgLcp",
+    title: "LCP",
+    description: "最大内容绘制",
+    unit: "ms",
+    thresholds: [2500, 4000],
+    max: 5000,
   },
   {
-    title: "目标路由",
-    dataIndex: "url",
+    key: "avgCls",
+    title: "CLS",
+    description: "累计布局偏移",
+    unit: "",
+    thresholds: [0.1, 0.25],
+    max: 0.5,
   },
   {
-    title: "平均 LCP (ms)",
-    dataIndex: "avgLcp",
-    defaultSortOrder: "descend" as const,
-    sorter: (
-      a: (typeof mockSlowRoutes)[number],
-      b: (typeof mockSlowRoutes)[number],
-    ) => a.avgLcp - b.avgLcp,
-  },
-  {
-    title: "平均切换耗时 (ms)",
-    dataIndex: "avgNavDuration",
-  },
-  {
-    title: "样本数",
-    dataIndex: "sampleCount",
+    key: "avgInp",
+    title: "INP",
+    description: "交互延迟 (P98)",
+    unit: "ms",
+    thresholds: [200, 500],
+    max: 800,
   },
 ];
+
+const cardConfigMap = {
+  soft: softCardConfigs,
+  hard: hardCardConfigs,
+  all: allCardConfigs,
+};
+
+const SERIES_DISPLAY_NAME: Record<string, string> = {
+  avgLcp: "LCP",
+  avgCls: "CLS×1000",
+  avgInp: "INP",
+  avgNavDuration: "Nav Duration",
+  avgTtfb: "TTFB",
+  avgFcp: "FCP",
+};
+
+const trendChartTitle: Record<string, string> = {
+  soft: "软导航指标趋势",
+  hard: "硬导航指标趋势",
+  all: "全量指标趋势",
+};
+
+const tableTitle: Record<string, string> = {
+  soft: "慢路由切换 Top10",
+  hard: "慢页面 Top10",
+  all: "慢页面 Top10",
+};
+
+const SKELETON_ROWS: any[] = Array.from({ length: 10 }, (_, i) => ({
+  url: `__skeleton__${i}`,
+}));
+
+const buildSlowPagesColumns = (navigationType: string, loading: boolean) => {
+  const rankCol = {
+    title: "排名",
+    key: "rank",
+    width: 60,
+    render: (_: SlowPage, __: SlowPage, index: number) =>
+      loading ? (
+        <Skeleton.Input size="small" active />
+      ) : (
+        <span>{index + 1}</span>
+      ),
+  };
+
+  if (navigationType === "soft") {
+    return [
+      rankCol,
+      {
+        title: "来源路由",
+        dataIndex: "fromUrl",
+        render: (val: string) =>
+          loading ? (
+            <Skeleton.Input size="small" active block />
+          ) : (
+            <span>{val}</span>
+          ),
+      },
+      {
+        title: "目标路由",
+        dataIndex: "url",
+        render: (val: string) =>
+          loading ? (
+            <Skeleton.Input size="small" active block />
+          ) : (
+            <span>{val}</span>
+          ),
+      },
+      {
+        title: "平均 LCP (ms)",
+        dataIndex: "avgLcp",
+        defaultSortOrder: "descend" as const,
+        sorter: (a: SlowPage, b: SlowPage) => (a.avgLcp ?? 0) - (b.avgLcp ?? 0),
+        render: (val: number | null) =>
+          loading ? (
+            <Skeleton.Input size="small" active />
+          ) : (
+            <span>{val ?? "-"}</span>
+          ),
+      },
+      {
+        title: "平均切换耗时 (ms)",
+        dataIndex: "avgNavDuration",
+        render: (val: number | null) =>
+          loading ? (
+            <Skeleton.Input size="small" active />
+          ) : (
+            <span>{val ?? "-"}</span>
+          ),
+      },
+      {
+        title: "样本数",
+        dataIndex: "sampleCount",
+        render: (val: number) =>
+          loading ? <Skeleton.Input size="small" active /> : <span>{val}</span>,
+      },
+    ];
+  }
+
+  if (navigationType === "hard") {
+    return [
+      rankCol,
+      {
+        title: "页面URL",
+        dataIndex: "url",
+        render: (val: string) =>
+          loading ? (
+            <Skeleton.Input size="small" active block />
+          ) : (
+            <span>{val}</span>
+          ),
+      },
+      {
+        title: "平均 LCP (ms)",
+        dataIndex: "avgLcp",
+        defaultSortOrder: "descend" as const,
+        sorter: (a: SlowPage, b: SlowPage) => (a.avgLcp ?? 0) - (b.avgLcp ?? 0),
+        render: (val: number | null) =>
+          loading ? (
+            <Skeleton.Input size="small" active />
+          ) : (
+            <span>{val ?? "-"}</span>
+          ),
+      },
+      {
+        title: "平均 FCP (ms)",
+        dataIndex: "avgFcp",
+        render: (val: number | null) =>
+          loading ? (
+            <Skeleton.Input size="small" active />
+          ) : (
+            <span>{val ?? "-"}</span>
+          ),
+      },
+      {
+        title: "平均 TTFB (ms)",
+        dataIndex: "avgTtfb",
+        render: (val: number | null) =>
+          loading ? (
+            <Skeleton.Input size="small" active />
+          ) : (
+            <span>{val ?? "-"}</span>
+          ),
+      },
+      {
+        title: "样本数",
+        dataIndex: "sampleCount",
+        render: (val: number) =>
+          loading ? <Skeleton.Input size="small" active /> : <span>{val}</span>,
+      },
+    ];
+  }
+
+  // all
+  return [
+    rankCol,
+    {
+      title: "页面URL",
+      dataIndex: "url",
+      render: (val: string) =>
+        loading ? (
+          <Skeleton.Input size="small" active block />
+        ) : (
+          <span>{val}</span>
+        ),
+    },
+    {
+      title: "平均 LCP (ms)",
+      dataIndex: "avgLcp",
+      defaultSortOrder: "descend" as const,
+      sorter: (a: SlowPage, b: SlowPage) => (a.avgLcp ?? 0) - (b.avgLcp ?? 0),
+      render: (val: number | null) =>
+        loading ? (
+          <Skeleton.Input size="small" active />
+        ) : (
+          <span>{val ?? "-"}</span>
+        ),
+    },
+    {
+      title: "平均 INP (ms)",
+      dataIndex: "avgInp",
+      render: (val: number | null) =>
+        loading ? (
+          <Skeleton.Input size="small" active />
+        ) : (
+          <span>{val ?? "-"}</span>
+        ),
+    },
+    {
+      title: "平均 FCP (ms)",
+      dataIndex: "avgFcp",
+      render: (val: number | null) =>
+        loading ? (
+          <Skeleton.Input size="small" active />
+        ) : (
+          <span>{val ?? "-"}</span>
+        ),
+    },
+    {
+      title: "样本数",
+      dataIndex: "sampleCount",
+      render: (val: number) =>
+        loading ? <Skeleton.Input size="small" active /> : <span>{val}</span>,
+    },
+  ];
+};
 
 const navigationTypeOptions = [
   { label: "软导航", value: "soft" },
@@ -153,12 +334,76 @@ const navigationTypeOptions = [
 ];
 
 const Performance = () => {
+  const { preset, dateRange, onDateChange } = useDateFilterSessionStorage({
+    storageKey: "performance",
+    defaultPreset: "7d",
+  });
   const [navigationType, setNavigationType] = useState("soft");
+  const [performanceData, setPerformanceData] =
+    useState<PerformanceData | null>(null);
+
+  const isSingleDay = useMemo(
+    () =>
+      dayjs(dateRange[0]).format("YYYY-MM-DD") ===
+      dayjs(dateRange[1]).format("YYYY-MM-DD"),
+    [dateRange],
+  );
+  const granularity = isSingleDay ? "hour" : "day";
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPerformanceData(null);
+    let cancelled = false;
+    getPerformance({
+      startDate: dateRange[0],
+      endDate: dateRange[1],
+      navigationType: navigationType as "soft" | "hard" | "all",
+      granularity,
+    })
+      .then((res) => {
+        if (!cancelled) setPerformanceData(res.data);
+      })
+      .catch((error) =>
+        console.error("Failed to fetch performance data:", error),
+      );
+    return () => {
+      cancelled = true;
+    };
+  }, [dateRange, navigationType, granularity]);
+
+  const cards = performanceData?.cards;
+  const trend = performanceData?.trend;
+  const slowPages = performanceData?.slowPages ?? [];
+
+  const cardConfigs =
+    cardConfigMap[navigationType as keyof typeof cardConfigMap];
+  const loading = performanceData === null;
+
+  const trendSeries = useMemo(() => {
+    if (!trend) return [];
+    return trend.series.map((s) => {
+      if (s.name === "avgCls") {
+        return {
+          name: SERIES_DISPLAY_NAME[s.name],
+          data: s.data.map((v) => v * 1000),
+        };
+      }
+      return { name: SERIES_DISPLAY_NAME[s.name] || s.name, data: s.data };
+    });
+  }, [trend]);
+
+  // 确保即使 URL 相同的记录也有唯一的 key
+  const slowPageRowKey = (record: SlowPage, index?: number) => {
+    const safeIndex = index ?? 0;
+    return navigationType === "soft"
+      ? `${record.fromUrl ?? "-"}__${record.url}__${safeIndex}`
+      : `${record.url}__${safeIndex}`;
+  };
 
   return (
     <div className={styles.page}>
       <div className={styles.selectBox}>
-        <DateSelect onChange={(value) => console.log(value)} />
+        <DateSelect onChange={onDateChange} preset={preset} value={dateRange} />
         <Select
           value={navigationType}
           onChange={setNavigationType}
@@ -166,66 +411,52 @@ const Performance = () => {
           style={{ width: 120 }}
         />
       </div>
+
       <div className={styles.cardContainer}>
-        {cardList.map((item) => (
-          <VitalCard
-            key={item.title}
-            title={item.title}
-            description={item.description}
-            value={item.value}
-            unit={item.unit}
-            thresholds={item.thresholds}
-            max={item.max}
-          />
-        ))}
+        {loading
+          ? cardConfigs.map((cfg) => (
+              <div key={cfg.key} className={styles.skeletonCard}>
+                <Skeleton active paragraph={{ rows: 3 }} />
+              </div>
+            ))
+          : cardConfigs.map((cfg) => (
+              <VitalCard
+                key={cfg.key}
+                title={cfg.title}
+                description={cfg.description}
+                value={cards?.[cfg.key] ?? 0}
+                unit={cfg.unit}
+                thresholds={cfg.thresholds}
+                max={cfg.max}
+              />
+            ))}
       </div>
+
       <div className={styles.chartContainer}>
         <div className={styles.chartCard}>
           <div className={styles.chartTitle}>
-            <span className={styles.title}>软导航指标趋势</span>
+            <span className={styles.title}>
+              {trendChartTitle[navigationType]}
+            </span>
           </div>
-          {/* TODO: 接入 API 后，折线图 series 根据 navigationType 动态切换 */}
           <LineChart
-            xData={[
-              "06-01",
-              "06-02",
-              "06-03",
-              "06-04",
-              "06-05",
-              "06-06",
-              "06-07",
-            ]}
-            series={[
-              {
-                name: "avgLcp",
-                data: [2300, 2150, 2400, 2200, 2100, 2350, 2180],
-              },
-              {
-                name: "avgInp",
-                data: [160, 140, 180, 120, 170, 145, 155],
-              },
-              {
-                name: "avgNavDuration",
-                data: [850, 780, 920, 700, 960, 830, 750],
-              },
-              {
-                name: "avgCls×1000",
-                data: [80, 72, 95, 68, 88, 76, 65],
-              },
-            ]}
+            xData={trend?.xData ?? []}
+            series={trendSeries}
             style={{ height: 350 }}
+            loading={loading}
           />
         </div>
       </div>
+
       <div className={styles.chartContainer}>
         <div className={styles.chartCard}>
           <div className={styles.chartTitle}>
-            <span className={styles.title}>慢路由切换 Top10</span>
+            <span className={styles.title}>{tableTitle[navigationType]}</span>
           </div>
           <Table
-            rowKey="url"
-            dataSource={mockSlowRoutes}
-            columns={slowRoutesColumns}
+            rowKey={slowPageRowKey}
+            dataSource={loading ? SKELETON_ROWS : slowPages}
+            columns={buildSlowPagesColumns(navigationType, loading)}
             pagination={false}
             size="small"
           />
