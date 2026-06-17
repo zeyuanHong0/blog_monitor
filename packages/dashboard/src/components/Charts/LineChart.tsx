@@ -25,12 +25,43 @@ interface LineChartProps {
   loading?: boolean;
 }
 
+const isEmpty = (xData: string[], series: Series[]) => {
+  if (xData.length === 0) return true;
+  return series.every((s) => s.data.length === 0 || s.data.every((v) => v === 0));
+};
+
+const emptyGraphic = {
+  type: "group",
+  left: "center",
+  top: "center",
+  children: [
+    {
+      type: "text",
+      style: {
+        text: "暂无数据",
+        fill: "#bfbfbf",
+        fontSize: 14,
+        fontWeight: 400,
+        fontFamily:
+          "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+      },
+    },
+  ],
+};
+
 const LineChart: React.FC<LineChartProps> = ({
   xData,
   series,
   style,
   loading,
 }) => {
+  if (isEmpty(xData, series)) {
+    const option: EChartsOption = {
+      graphic: emptyGraphic as any,
+    };
+    return <EChartsWrapper option={option} style={style} loading={loading} />;
+  }
+
   const option: EChartsOption = {
     tooltip: {
       trigger: "axis",

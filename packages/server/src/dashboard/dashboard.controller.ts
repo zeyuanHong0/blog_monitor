@@ -1,8 +1,10 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { DashboardService } from './dashboard.service';
 import { DashboardQueryDto } from './dto/query.dto';
+import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 
 @Controller('dashboard')
+@UseGuards(JwtAuthGuard)
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
@@ -32,7 +34,7 @@ export class DashboardController {
   }
 
   @Get('uptime')
-  getUptime(@Query() query: DashboardQueryDto) {
-    return this.dashboardService.getUptime(query);
+  getUptime() {
+    return this.dashboardService.getUptime();
   }
 }

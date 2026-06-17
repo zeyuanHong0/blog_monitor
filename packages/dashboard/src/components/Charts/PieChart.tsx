@@ -18,7 +18,40 @@ interface PieChartProps {
   loading?: boolean;
 }
 
+const emptyGraphic = {
+  type: "group",
+  left: "center",
+  top: "center",
+  children: [
+    {
+      type: "text",
+      style: {
+        text: "暂无数据",
+        fill: "#bfbfbf",
+        fontSize: 14,
+        fontWeight: 400,
+        fontFamily:
+          "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+      },
+    },
+  ],
+};
+
 const PieChart: React.FC<PieChartProps> = ({ data, title, style, loading }) => {
+  if (!data || data.length === 0) {
+    const option: EChartsOption = {
+      title: title
+        ? {
+            text: title,
+            left: "center",
+            textStyle: { fontSize: 14, fontWeight: 500, color: "#333" },
+          }
+        : undefined,
+      graphic: emptyGraphic as any,
+    };
+    return <EChartsWrapper option={option} style={style} loading={loading} />;
+  }
+
   const option: EChartsOption = {
     title: title
       ? {

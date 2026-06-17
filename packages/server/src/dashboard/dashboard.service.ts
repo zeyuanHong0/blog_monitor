@@ -547,72 +547,151 @@ export class DashboardService {
     return { data: error };
   }
 
-  async getUptime(query: DashboardQueryDto) {
-    const { start, end } = this.getDateRange(query);
+  async getUptime() {
+    const twentyFourHoursAgo = dayjs().subtract(24, 'hour').toDate();
+    const thirtyDaysAgo = dayjs().subtract(30, 'day').startOf('day').toDate();
 
-    const since = dayjs(start).toDate();
-    const until = dayjs(end).endOf('day').toDate();
+    const [
+      uptime24h,
+      responseTrend,
+      dailyStatusRaw,
+      sslExpiry,
+      failureRecords,
+    ] = await Promise.all([
+      // 可用率（近 24 小时）
+      this.calculateUptime(24),
 
-    const [uptime24h, responseTrend, sslExpiry, failureRecords] =
-      await Promise.all([
-        // 可用率（近 24 小时）
-        this.calculateUptime(24),
+      // 响应时间趋势（近 24 小时，按小时分组）
+      this.heartbeatRepository
+        .createQueryBuilder('hb')
+        .select("DATE_FORMAT(hb.checkTime, '%Y-%m-%d %H:00:00')", 'hour')
+        .addSelect('AVG(hb.responseTime)', 'avgResponseTime')
+        .addSelect('COUNT(*)', 'checkCount')
+        .where('hb.checkTime >= :twentyFourHoursAgo', { twentyFourHoursAgo })
+        .groupBy('hour')
+        .orderBy('hour', 'ASC')
+        .getRawMany<{
+          hour: string;
+          avgResponseTime: string;
+          checkCount: string;
+        }>(),
 
-        // 响应时间趋势（按小时分组 AVG）
-        this.heartbeatRepository
-          .createQueryBuilder('hb')
-          .select("DATE_FORMAT(hb.checkTime, '%Y-%m-%d %H:00:00')", 'hour')
-          .addSelect('AVG(hb.responseTime)', 'avgResponseTime')
-          .addSelect('COUNT(*)', 'checkCount')
-          .where('hb.checkTime >= :since AND hb.checkTime <= :until', {
-            since,
-            until,
-          })
-          .groupBy('hour')
-          .orderBy('hour', 'ASC')
-          .getRawMany<{
-            hour: string;
-            avgResponseTime: string;
-            checkCount: string;
-          }>(),
+      // 30 天每日可用状态（按天聚合）
+      this.heartbeatRepository
+        .createQueryBuilder('hb')
+        .select("DATE_FORMAT(hb.checkTime, '%Y-%m-%d')", 'date')
+        .addSelect('COUNT(*)', 'total')
+        .addSelect('SUM(CASE WHEN hb.isUp = 1 THEN 1 ELSE 0 END)', 'upCount')
+        .where('hb.checkTime >= :thirtyDaysAgo', { thirtyDaysAgo })
+        .groupBy('date')
+        .orderBy('date', 'ASC')
+        .getRawMany<{
+          date: string;
+          total: string;
+          upCount: string;
+        }>(),
 
-        // 最新 SSL 到期时间
-        this.heartbeatRepository
-          .createQueryBuilder('hb')
-          .select('hb.sslExpiry', 'sslExpiry')
-          .where('hb.sslExpiry IS NOT NULL')
-          .orderBy('hb.checkTime', 'DESC')
-          .limit(1)
-          .getRawOne<{ sslExpiry: string | null }>(),
+      // 最新 SSL 到期时间
+      this.heartbeatRepository
+        .createQueryBuilder('hb')
+        .select('hb.sslExpiry', 'sslExpiry')
+        .where('hb.sslExpiry IS NOT NULL')
+        .orderBy('hb.checkTime', 'DESC')
+        .limit(1)
+        .getRawOne<{ sslExpiry: string | null }>(),
 
-        // 故障记录（isUp=false 的最近 20 条）
-        this.heartbeatRepository
-          .createQueryBuilder('hb')
-          .select([
-            'hb.id',
-            'hb.targetUrl',
-            'hb.statusCode',
-            'hb.responseTime',
-            'hb.errorMessage',
-            'hb.checkTime',
-          ])
-          .where('hb.isUp = :isUp', { isUp: false })
-          .orderBy('hb.checkTime', 'DESC')
-          .limit(20)
-          .getMany(),
-      ]);
+      // 故障记录（isUp=false 的最近 20 条）
+      this.heartbeatRepository
+        .createQueryBuilder('hb')
+        .select([
+          'hb.id',
+          'hb.targetUrl',
+          'hb.statusCode',
+          'hb.responseTime',
+          'hb.errorMessage',
+          'hb.checkTime',
+        ])
+        .where('hb.isUp = :isUp', { isUp: false })
+        .orderBy('hb.checkTime', 'DESC')
+        .limit(20)
+        .getMany(),
+    ]);
+
+    // 构建 30 天每日状态（补齐无数据的日期）
+    const dailyStatusMap = new Map<
+      string,
+      { total: number; upCount: number }
+    >();
+    for (const row of dailyStatusRaw) {
+      dailyStatusMap.set(row.date, {
+        total: Number(row.total),
+        upCount: Number(row.upCount),
+      });
+    }
+
+    const dailyStatus: {
+      date: string;
+      status: 'up' | 'down' | 'noData';
+      description: string;
+    }[] = [];
+    for (let i = 29; i >= 0; i--) {
+      const date = dayjs().subtract(i, 'day').format('YYYY-MM-DD');
+      const dayData = dailyStatusMap.get(date);
+
+      if (!dayData || dayData.total === 0) {
+        dailyStatus.push({ date, status: 'noData', description: '无数据' });
+      } else if (dayData.upCount === dayData.total) {
+        dailyStatus.push({ date, status: 'up', description: '全天正常' });
+      } else {
+        const downCount = dayData.total - dayData.upCount;
+        dailyStatus.push({
+          date,
+          status: 'down',
+          description: `${downCount} 次故障`,
+        });
+      }
+    }
+
+    // 构建 24 小时响应趋势（补齐无数据的小时）
+    const responseTrendMap = new Map<
+      string,
+      { hour: string; avgResponseTime: number | null; checkCount: number }
+    >();
+    for (const row of responseTrend) {
+      responseTrendMap.set(row.hour, {
+        hour: row.hour,
+        avgResponseTime:
+          row.avgResponseTime !== null
+            ? Math.round(Number(row.avgResponseTime))
+            : null,
+        checkCount: Number(row.checkCount),
+      });
+    }
+
+    const responseTrendChart: {
+      hour: string;
+      avgResponseTime: number | null;
+      checkCount: number;
+    }[] = [];
+    for (let i = 23; i >= 0; i--) {
+      const hourKey = dayjs()
+        .subtract(i, 'hour')
+        .startOf('hour')
+        .format('YYYY-MM-DD HH:00:00');
+      responseTrendChart.push(
+        responseTrendMap.get(hourKey) ?? {
+          hour: hourKey,
+          avgResponseTime: null,
+          checkCount: 0,
+        },
+      );
+    }
 
     return {
       data: {
         uptime24h,
-        responseTrend: responseTrend.map((r) => ({
-          hour: r.hour,
-          avgResponseTime:
-            r.avgResponseTime !== null
-              ? Math.round(Number(r.avgResponseTime))
-              : null,
-          checkCount: Number(r.checkCount),
-        })),
+        responseTrend: responseTrendChart,
+        dailyStatus,
         sslExpiry: sslExpiry?.sslExpiry ?? null,
         failureRecords,
       },

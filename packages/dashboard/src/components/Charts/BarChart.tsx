@@ -11,6 +11,25 @@ interface BarChartProps {
   loading?: boolean;
 }
 
+const emptyGraphic = {
+  type: "group",
+  left: "center",
+  top: "center",
+  children: [
+    {
+      type: "text",
+      style: {
+        text: "暂无数据",
+        fill: "#bfbfbf",
+        fontSize: 14,
+        fontWeight: 400,
+        fontFamily:
+          "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+      },
+    },
+  ],
+};
+
 const BarChart: React.FC<BarChartProps> = ({
   xData,
   data,
@@ -19,6 +38,19 @@ const BarChart: React.FC<BarChartProps> = ({
   style,
   loading,
 }) => {
+  if (xData.length === 0 || data.length === 0) {
+    const option: EChartsOption = {
+      graphic: emptyGraphic as any,
+    };
+    return (
+      <EChartsWrapper
+        option={option}
+        style={{ height: 220, ...style }}
+        loading={loading}
+      />
+    );
+  }
+
   const option: EChartsOption = {
     tooltip: {
       trigger: "axis",

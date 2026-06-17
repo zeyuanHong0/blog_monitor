@@ -1,88 +1,22 @@
-import { Statistic, Table } from "antd";
+import { useEffect, useState } from "react";
+import { Statistic, Table, Skeleton, Empty } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 
+import { getUptime } from "@/api/uptime";
+import type { UptimeData, FailureRecord } from "@/api/uptime/types";
+
 import { LineChart } from "@/components/Charts";
 import UptimeTimeline from "@/components/UptimeTimeline";
-
 import styles from "./index.module.scss";
 
-interface DayStatus {
-  date: string;
-  status: "up" | "down" | "noData";
-  description?: string;
-}
-
-interface Incident {
-  checkTime: string;
-  statusCode: number;
-  responseTime: number;
-  errorMessage: string;
-}
-
-const sslExpiry = "2026-09-15T00:00:00Z";
-
-const timelineFixedData: DayStatus[] = [
-  { date: "2026-05-10", status: "up", description: "全天正常" },
-  { date: "2026-05-11", status: "up", description: "全天正常" },
-  { date: "2026-05-12", status: "up", description: "全天正常" },
-  { date: "2026-05-13", status: "down", description: "服务中断 23 分钟" },
-  { date: "2026-05-14", status: "up", description: "全天正常" },
-  { date: "2026-05-15", status: "up", description: "全天正常" },
-  { date: "2026-05-16", status: "up", description: "全天正常" },
-];
-
-const responseTrendData = {
-  xData: [
-    "2026-06-07 00:00",
-    "2026-06-07 01:00",
-    "2026-06-07 02:00",
-    "2026-06-07 03:00",
-    "2026-06-07 04:00",
-    "2026-06-07 05:00",
-  ],
-  data: [120, 115, 98, 95, 102, 110],
-};
-
-const incidents: Incident[] = [
-  {
-    checkTime: "2026-06-05 14:32:10",
-    statusCode: 503,
-    responseTime: 5230,
-    errorMessage: "上游服务不可用，网关返回 503",
-  },
-  {
-    checkTime: "2026-06-04 03:15:44",
-    statusCode: 502,
-    responseTime: 8120,
-    errorMessage: "反向代理连接后端超时，返回 Bad Gateway",
-  },
-  {
-    checkTime: "2026-06-01 22:08:33",
-    statusCode: 500,
-    responseTime: 4500,
-    errorMessage: "服务器内部异常，数据库连接池耗尽",
-  },
-  {
-    checkTime: "2026-05-28 09:45:21",
-    statusCode: 408,
-    responseTime: 10000,
-    errorMessage: "请求超时，服务端未在规定时间内响应",
-  },
-  {
-    checkTime: "2026-05-25 16:22:05",
-    statusCode: 503,
-    responseTime: 6340,
-    errorMessage: "服务维护中，暂时不可用",
-  },
-];
-
-const incidentColumns: ColumnsType<Incident> = [
+const failureColumns: ColumnsType<FailureRecord> = [
   {
     title: "时间",
     dataIndex: "checkTime",
     key: "checkTime",
     width: 180,
+    render: (val: string) => dayjs(val).format("YYYY-MM-DD HH:mm:ss"),
   },
   {
     title: "状态码",
@@ -105,56 +39,106 @@ const incidentColumns: ColumnsType<Incident> = [
 ];
 
 const Uptime = () => {
-  const timelineData = timelineFixedData;
-  const responseTrend = responseTrendData;
+  const [uptimeData, setUptimeData] = useState<UptimeData | null>(null);
 
-  const sslDaysLeft = dayjs(sslExpiry).diff(dayjs(), "day");
+  useEffect(() => {
+    let cancelled = false;
+    getUptime()
+      .then((res) => {
+        if (!cancelled) setUptimeData(res.data);
+      })
+      .catch((error) => console.error("Failed to fetch uptime data:", error));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const sslDaysLeft = uptimeData?.sslExpiry
+    ? dayjs(uptimeData.sslExpiry).diff(dayjs(), "day")
+    : null;
+
+  // 从 "2026-06-17 14:00:00" 中提取 "HH:00"
+  const responseTrendChart = {
+    xData:
+      uptimeData?.responseTrend?.map((r) => {
+        const parts = r.hour.split(" ");
+        return parts[1]?.slice(0, 5) ?? r.hour;
+      }) ?? [],
+    data:
+      uptimeData?.responseTrend?.map((r) => r.avgResponseTime ?? 0) ?? [],
+  };
 
   return (
     <div className={styles.page}>
       <div className={styles.statsRow}>
         <div className={styles.statCard}>
-          <Statistic
-            title="近 24 小时可用率"
-            value={99.87}
-            suffix="%"
-            precision={2}
-          />
+          {uptimeData === null ? (
+            <Skeleton.Input active size="small" />
+          ) : (
+            <Statistic
+              title="近 24 小时可用率"
+              value={uptimeData.uptime24h}
+              suffix="%"
+              precision={2}
+            />
+          )}
         </div>
         <div className={styles.statCard}>
-          <Statistic title="SSL 证书到期" value={sslDaysLeft} suffix="天" />
+          {uptimeData === null ? (
+            <Skeleton.Input active size="small" />
+          ) : (
+            <Statistic
+              title="SSL 证书到期"
+              value={sslDaysLeft ?? "--"}
+              suffix={sslDaysLeft !== null ? "天" : undefined}
+            />
+          )}
         </div>
       </div>
 
       <div className={styles.chartCard}>
         <div className={styles.chartTitle}>30 天可用性</div>
-        <UptimeTimeline data={timelineData} />
+        {uptimeData === null ? (
+          <Skeleton active paragraph={{ rows: 2 }} />
+        ) : (
+          <UptimeTimeline data={uptimeData.dailyStatus} />
+        )}
       </div>
 
       <div className={styles.chartCard}>
         <div className={styles.chartTitle}>响应时间趋势</div>
-        <LineChart
-          xData={responseTrend.xData}
-          series={[
-            {
-              name: "平均响应时间",
-              data: responseTrend.data,
-              color: "#1890ff",
-            },
-          ]}
-          style={{ height: 300 }}
-        />
+        {uptimeData === null ? (
+          <Skeleton active paragraph={{ rows: 4 }} />
+        ) : responseTrendChart.xData.length === 0 ? (
+          <Empty description="暂无数据" />
+        ) : (
+          <LineChart
+            xData={responseTrendChart.xData}
+            series={[
+              {
+                name: "平均响应时间",
+                data: responseTrendChart.data,
+                color: "#1890ff",
+              },
+            ]}
+            style={{ height: 300 }}
+          />
+        )}
       </div>
 
       <div className={styles.chartCard}>
         <div className={styles.chartTitle}>故障记录</div>
-        <Table<Incident>
-          rowKey="checkTime"
-          dataSource={incidents}
-          columns={incidentColumns}
+        <Table<FailureRecord>
+          rowKey="id"
+          dataSource={uptimeData === null ? [] : uptimeData.failureRecords}
+          columns={failureColumns}
           pagination={{ pageSize: 10 }}
           size="small"
           scroll={{ x: 600 }}
+          loading={uptimeData === null}
+          locale={{
+            emptyText: <Empty description="暂无故障记录" />,
+          }}
         />
       </div>
     </div>
