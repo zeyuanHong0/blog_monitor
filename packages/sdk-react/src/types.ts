@@ -1,11 +1,11 @@
 /**
- * @blog-monitor/react 类型定义
- * 核心类型从 @web-monitor/sdk 导入
+ * web-observer-react-sdk 类型定义
+ * 核心类型从 web-observer-sdk 导入
  */
 import type React from 'react';
-export type { ErrorCollector, ErrorData, Framework, ErrorType } from '@web-monitor/sdk';
+export type { ErrorCollector, ErrorData, Framework, ErrorType } from 'web-observer-sdk';
 
-/** BlogMonitor SDK 实例接口（挂载到 window 上的全局对象） */
+/** Web Observer SDK 实例接口（挂载到 window 上的全局对象） */
 export interface BlogMonitorSDKGlobal {
   reportError(error: Error | string, metadata?: Record<string, any>): void;
 }
@@ -18,7 +18,7 @@ export interface MonitorErrorBoundaryProps {
   onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
   /** 子组件 */
   children: React.ReactNode;
-  /** 直接传入 BlogMonitor SDK 实例（优先级高于全局获取） */
+  /** 直接传入 SDK 实例（优先级高于全局获取） */
   reporter?: BlogMonitorSDKGlobal;
 }
 

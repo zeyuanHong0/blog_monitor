@@ -1,5 +1,5 @@
 import React from "react";
-import { WebMonitor } from "@web-monitor/sdk";
+import { WebMonitor } from "web-observer-sdk";
 import type {
   MonitorErrorBoundaryProps,
   MonitorErrorBoundaryState,
@@ -8,17 +8,17 @@ import type {
 
 declare global {
   interface Window {
-    __BLOG_MONITOR_SDK__?: BlogMonitorSDKGlobal;
+    __WEB_OBSERVER_SDK__?: BlogMonitorSDKGlobal;
   }
 }
 
 /**
- * 从全局获取 BlogMonitor SDK 实例
- * SDK 初始化后会挂载到 window.__BLOG_MONITOR_SDK__
+ * 从全局获取 SDK 实例
+ * SDK 初始化后会挂载到 window.__WEB_OBSERVER_SDK__
  */
 function getSDKInstance(): BlogMonitorSDKGlobal | null {
-  if (typeof window !== "undefined" && window.__BLOG_MONITOR_SDK__) {
-    return window.__BLOG_MONITOR_SDK__;
+  if (typeof window !== "undefined" && window.__WEB_OBSERVER_SDK__) {
+    return window.__WEB_OBSERVER_SDK__;
   }
   // 回退使用导入的 WebMonitor 单例
   return WebMonitor as unknown as BlogMonitorSDKGlobal;
@@ -98,7 +98,7 @@ export class MonitorErrorBoundary extends React.Component<
         },
       });
     } else {
-      console.warn("[blog-monitor/react] SDK 未初始化，无法上报错误");
+      console.warn("[web-observer-react-sdk] SDK 未初始化，无法上报错误");
     }
 
     // 调用额外的错误回调

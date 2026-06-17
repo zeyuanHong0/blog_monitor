@@ -1,17 +1,20 @@
 {
-  "name": "@web-monitor/react-sdk",
-  "version": "1.0.0",
+  "name": "web-observer-react-sdk",
+  "version": "1.0.2",
   "description": "React framework error adapter for blog-monitor SDK",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "rollup -c",
     "dev": "rollup -c -w"
   },
   "peerDependencies": {
-    "@web-monitor/sdk": "^1.0.0",
-    "react": ">=16.8.0"
+    "react": ">=16.8.0",
+    "web-observer-sdk": "^1.0.0"
   },
   "devDependencies": {
     "@rollup/plugin-typescript": "^12.3.0",

@@ -1,11 +1,11 @@
-# @web-monitor/react-sdk
+# web-observer-react-sdk
 
-博客监控系统的 React 框架错误适配器，提供 `MonitorErrorBoundary` 错误边界组件，自动捕获并上报 React 组件树中的错误。
+面向 React 应用的错误监控适配器，提供 `MonitorErrorBoundary` 错误边界组件，用于自动捕获并上报 React 组件树中的运行时错误。
 
 ## 安装
 
 ```bash
-npm install @web-monitor/react-sdk @web-monitor/sdk react
+npm install web-observer-react-sdk web-observer-sdk react
 ```
 
 ## 使用
@@ -13,7 +13,7 @@ npm install @web-monitor/react-sdk @web-monitor/sdk react
 ### 基本用法
 
 ```tsx
-import { MonitorErrorBoundary } from '@web-monitor/react-sdk';
+import { MonitorErrorBoundary } from 'web-observer-react-sdk';
 
 function App() {
   return (
@@ -40,8 +40,8 @@ function App() {
 ### 手动传入 Reporter
 
 ```tsx
-import { MonitorErrorBoundary } from '@web-monitor/react-sdk';
-import { getErrorCollector } from '@web-monitor/sdk';
+import { MonitorErrorBoundary } from 'web-observer-react-sdk';
+import { getErrorCollector } from 'web-observer-sdk';
 
 <MonitorErrorBoundary
   reporter={getErrorCollector()}
