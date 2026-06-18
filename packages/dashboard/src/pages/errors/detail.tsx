@@ -5,7 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import dayjs from "dayjs";
 
 import { getErrorDetail } from "@/api/errors";
-import type { ErrorDetail } from "@/api/errors/types";
+import type { ErrorDetail as ErrorDetailType } from "@/api/errors/types";
 
 import styles from "./detail.module.scss";
 
@@ -25,7 +25,7 @@ const ErrorDetail = () => {
   const navigate = useNavigate();
   const { token } = theme.useToken();
 
-  const [errorDetail, setErrorDetail] = useState<ErrorDetail | null>(null);
+  const [errorDetail, setErrorDetail] = useState<ErrorDetailType | null>(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
 

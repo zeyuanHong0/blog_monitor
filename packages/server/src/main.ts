@@ -17,7 +17,7 @@ async function bootstrap() {
     origin: true,
     credentials: true, // 允许携带 cookie
   });
-  app.setGlobalPrefix('api'); //设置全局前缀为 'api'
+  app.setGlobalPrefix('monitorApi'); //设置全局前缀为 'monitor'
   app.useGlobalFilters(new AllExceptionsFilter(app.get(Logger)));
   app.useGlobalInterceptors(new ResponseInterceptor());
   app.useGlobalPipes(
