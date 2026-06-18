@@ -46,9 +46,14 @@ const buildTopPagesColumns = (loading: boolean) => [
 ];
 
 const errorTypeConfig: Record<string, { color: string; label: string }> = {
-  js: { color: "red", label: "JS 错误" },
+  js: { color: "red", label: "JS" },
   promise: { color: "orange", label: "Promise" },
-  resource: { color: "volcano", label: "资源" },
+  resource: { color: "green", label: "资源" },
+  ajax: { color: "blue", label: "Ajax" },
+  network: { color: "purple", label: "网络" },
+  framework: { color: "cyan", label: "框架" },
+  custom: { color: "geekblue", label: "自定义" },
+  unknown: { color: "default", label: "未知" },
 };
 
 const buildLatestErrorsColumns = (loading: boolean) => [
