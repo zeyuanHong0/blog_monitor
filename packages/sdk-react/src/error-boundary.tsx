@@ -72,10 +72,7 @@ export class MonitorErrorBoundary extends React.Component<
   MonitorErrorBoundaryProps,
   MonitorErrorBoundaryState
 > {
-  constructor(props: MonitorErrorBoundaryProps) {
-    super(props);
-    this.state = { hasError: false };
-  }
+  state: MonitorErrorBoundaryState = { hasError: false };
 
   static getDerivedStateFromError(_error: Error): MonitorErrorBoundaryState {
     return { hasError: true };
