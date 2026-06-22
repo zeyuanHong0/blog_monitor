@@ -6,13 +6,15 @@ import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './filters/all-exceptions.filter';
 import { ResponseInterceptor } from '@/common/interceptors/response.interceptor';
+import { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bufferLogs: true,
   });
   app.useLogger(app.get(Logger)); //使用nestjs-pino作为日志记录器
   app.use(cookieParser()); // 启用 cookie-parser
+  app.set('trust proxy', 1);
   app.enableCors({
     origin: true,
     credentials: true, // 允许携带 cookie
