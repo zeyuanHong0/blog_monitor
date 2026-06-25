@@ -33,7 +33,10 @@ export default function MainLayout() {
   return (
     <Layout className={styles.layout}>
       <Sidebar />
-      <Flex vertical style={{ flex: 1, minWidth: 0, height: "100vh", overflow: "hidden" }}>
+      <Flex
+        vertical
+        style={{ flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}
+      >
         <Header />
         <Content
           style={{

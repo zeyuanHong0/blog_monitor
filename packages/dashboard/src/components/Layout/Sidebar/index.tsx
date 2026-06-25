@@ -179,7 +179,6 @@ export default function Sidebar() {
       style={{
         borderRight: `1px solid ${token.colorBorderSecondary}`,
         background: token.colorBgLayout,
-        minHeight: "100vh",
         overflow: "visible",
       }}
     >
