@@ -5,6 +5,8 @@ import { PageView } from './entities/page-view.entity';
 import { Performance } from './entities/performance.entity';
 import { MonitorError } from './entities/error.entity';
 import { MonitorEvent } from './entities/event.entity';
+import { IpRegionService } from '@/ip-region/ip-region.service';
+import { PinoLogger } from 'nestjs-pino';
 
 import { ReportPayloadDto } from './dto/reportPayload.dto';
 import { PageViewDto } from './dto/pageview.dto';
@@ -25,6 +27,8 @@ export class CollectService {
     private errorRepository: Repository<MonitorError>,
     @InjectRepository(MonitorEvent)
     private eventRepository: Repository<MonitorEvent>,
+    private ipRegionService: IpRegionService,
+    private readonly logger: PinoLogger,
   ) {}
   report(reportData: ReportPayloadDto) {
     console.log('Received report data:', reportData);
@@ -69,5 +73,8 @@ export class CollectService {
         return handler(data as never);
       }),
     );
+    this.ipRegionService.search(ip).catch((error) => {
+      this.logger.warn(`ip region search failed: ${ip}`, error);
+    });
   }
 }

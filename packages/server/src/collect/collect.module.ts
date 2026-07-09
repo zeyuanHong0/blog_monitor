@@ -7,6 +7,8 @@ import { Performance } from './entities/performance.entity';
 import { MonitorError } from './entities/error.entity';
 import { MonitorEvent } from './entities/event.entity';
 
+import { IpRegionModule } from '@/ip-region/ip-region.module';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -15,6 +17,7 @@ import { MonitorEvent } from './entities/event.entity';
       MonitorError,
       MonitorEvent,
     ]),
+    IpRegionModule,
   ],
   controllers: [CollectController],
   providers: [CollectService],

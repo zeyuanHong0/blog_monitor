@@ -45,6 +45,7 @@
     "cookie-parser": "^1.4.7",
     "dayjs": "^1.11.18",
     "dotenv": "^17.2.1",
+    "ip2region": "^2.3.0",
     "joi": "^18.0.0",
     "mysql2": "^3.14.3",
     "nestjs-pino": "^4.4.0",

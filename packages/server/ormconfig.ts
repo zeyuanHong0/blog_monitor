@@ -12,6 +12,7 @@ import { MonitorError } from '@/collect/entities/error.entity';
 import { MonitorEvent } from '@/collect/entities/event.entity';
 import { Heartbeat } from '@/heartbeat/entities/heartbeat.entity';
 import { DailyStat } from '@/aggregate/entities/daily-stat.entity';
+import { IpRegion } from '@/ip-region/entities/ip-region.entity';
 
 // 通过环境变量读取不同的.env文件
 function getEnv(env: string): Record<string, any> {
@@ -42,6 +43,7 @@ function buildConnectionOptions(): TypeOrmModuleOptions {
       MonitorEvent,
       Heartbeat,
       DailyStat,
+      IpRegion,
     ],
     synchronize: false, // 注意:在生产环境中不要使用 synchronize: true
     migrations: [

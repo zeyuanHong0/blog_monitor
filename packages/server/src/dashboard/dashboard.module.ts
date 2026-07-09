@@ -7,6 +7,7 @@ import { PageView } from '@/collect/entities/page-view.entity';
 import { Performance } from '@/collect/entities/performance.entity';
 import { MonitorError } from '@/collect/entities/error.entity';
 import { Heartbeat } from '@/heartbeat/entities/heartbeat.entity';
+import { IpRegion } from '@/ip-region/entities/ip-region.entity';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { Heartbeat } from '@/heartbeat/entities/heartbeat.entity';
       Performance,
       MonitorError,
       Heartbeat,
+      IpRegion,
     ]),
   ],
   controllers: [DashboardController],

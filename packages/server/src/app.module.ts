@@ -18,6 +18,7 @@ import { CollectModule } from './collect/collect.module';
 import { HeartbeatModule } from './heartbeat/heartbeat.module';
 import { AggregateModule } from './aggregate/aggregate.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { IpRegionModule } from './ip-region/ip-region.module';
 
 // console.log('NODE_ENV:', process.env.NODE_ENV);
 const envFilePath = `.env.${process.env.NODE_ENV || 'development'}`;
@@ -74,6 +75,7 @@ const envFilePath = `.env.${process.env.NODE_ENV || 'development'}`;
     HeartbeatModule,
     AggregateModule,
     DashboardModule,
+    IpRegionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

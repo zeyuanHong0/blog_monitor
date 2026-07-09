@@ -6,6 +6,7 @@ import { PageView } from '@/collect/entities/page-view.entity';
 import { Performance } from '@/collect/entities/performance.entity';
 import { MonitorError } from '@/collect/entities/error.entity';
 import { Heartbeat } from '@/heartbeat/entities/heartbeat.entity';
+import { IpRegion } from '@/ip-region/entities/ip-region.entity';
 import { DashboardQueryDto } from './dto/query.dto';
 import dayjs from '@/common/dayjs.config';
 
@@ -51,6 +52,8 @@ export class DashboardService {
     private errorRepository: Repository<MonitorError>,
     @InjectRepository(Heartbeat)
     private heartbeatRepository: Repository<Heartbeat>,
+    @InjectRepository(IpRegion)
+    private ipRegionRepository: Repository<IpRegion>,
   ) {}
 
   private getDateRange(query: DashboardQueryDto): {
@@ -240,60 +243,98 @@ export class DashboardService {
     const { start, end } = this.getDateRange(query);
     const isHourly = query.granularity === 'hour' || start === end;
 
-    const [trendRaw, hourlyTrendRaw, topPages, hourlyRaw] = await Promise.all([
-      // PV/UV 日粒度趋势（仅多天时使用）
-      isHourly
-        ? Promise.resolve([] as Pick<DailyStat, 'date' | 'pv' | 'uv'>[])
-        : this.dailyStatRepository
-            .createQueryBuilder('ds')
-            .select(['ds.date', 'ds.pv', 'ds.uv'])
-            .where('ds.date >= :start AND ds.date <= :end', { start, end })
-            .orderBy('ds.date', 'ASC')
-            .getMany(),
+    const [trendRaw, hourlyTrendRaw, topPages, hourlyRaw, visitorsRaw] =
+      await Promise.all([
+        // PV/UV 日粒度趋势（仅多天时使用）
+        isHourly
+          ? Promise.resolve([] as Pick<DailyStat, 'date' | 'pv' | 'uv'>[])
+          : this.dailyStatRepository
+              .createQueryBuilder('ds')
+              .select(['ds.date', 'ds.pv', 'ds.uv'])
+              .where('ds.date >= :start AND ds.date <= :end', { start, end })
+              .orderBy('ds.date', 'ASC')
+              .getMany(),
 
-      // PV/UV 小时粒度趋势（仅单天时使用）
-      isHourly
-        ? this.pageViewRepository
-            .createQueryBuilder('pv')
-            .select('HOUR(pv.createTime)', 'hour')
-            .addSelect('COUNT(*)', 'pv')
-            .addSelect('COUNT(DISTINCT pv.sessionId)', 'uv')
-            .where(
-              'DATE(pv.createTime) >= :start AND DATE(pv.createTime) <= :end',
-              { start, end },
-            )
-            .groupBy('HOUR(pv.createTime)')
-            .orderBy('hour', 'ASC')
-            .getRawMany<{ hour: string; pv: string; uv: string }>()
-        : Promise.resolve([] as { hour: string; pv: string; uv: string }[]),
+        // PV/UV 小时粒度趋势（仅单天时使用）
+        isHourly
+          ? this.pageViewRepository
+              .createQueryBuilder('pv')
+              .select('HOUR(pv.createTime)', 'hour')
+              .addSelect('COUNT(*)', 'pv')
+              .addSelect('COUNT(DISTINCT pv.sessionId)', 'uv')
+              .where(
+                'DATE(pv.createTime) >= :start AND DATE(pv.createTime) <= :end',
+                { start, end },
+              )
+              .groupBy('HOUR(pv.createTime)')
+              .orderBy('hour', 'ASC')
+              .getRawMany<{ hour: string; pv: string; uv: string }>()
+          : Promise.resolve([] as { hour: string; pv: string; uv: string }[]),
 
-      // 页面 Top5（来自 page_views 分组）
-      this.pageViewRepository
-        .createQueryBuilder('pv')
-        .select('pv.url', 'url')
-        .addSelect('COUNT(*)', 'count')
-        .where(
-          'DATE(pv.createTime) >= :start AND DATE(pv.createTime) <= :end',
-          { start, end },
-        )
-        .groupBy('pv.url')
-        .orderBy('count', 'DESC')
-        .limit(5)
-        .getRawMany<{ url: string; count: string }>(),
+        // 页面 Top5（来自 page_views 分组）
+        this.pageViewRepository
+          .createQueryBuilder('pv')
+          .select('pv.url', 'url')
+          .addSelect('COUNT(*)', 'count')
+          .where(
+            'DATE(pv.createTime) >= :start AND DATE(pv.createTime) <= :end',
+            { start, end },
+          )
+          .groupBy('pv.url')
+          .orderBy('count', 'DESC')
+          .limit(5)
+          .getRawMany<{ url: string; count: string }>(),
 
-      // 访问时段分布（按小时分组，统计整个日期范围内各时段的 PV）
-      this.pageViewRepository
-        .createQueryBuilder('pv')
-        .select('HOUR(pv.createTime)', 'hour')
-        .addSelect('COUNT(*)', 'count')
-        .where(
-          'DATE(pv.createTime) >= :start AND DATE(pv.createTime) <= :end',
-          { start, end },
-        )
-        .groupBy('HOUR(pv.createTime)')
-        .orderBy('hour', 'ASC')
-        .getRawMany<{ hour: string; count: string }>(),
-    ]);
+        // 访问时段分布（按小时分组，统计整个日期范围内各时段的 PV）
+        this.pageViewRepository
+          .createQueryBuilder('pv')
+          .select('HOUR(pv.createTime)', 'hour')
+          .addSelect('COUNT(*)', 'count')
+          .where(
+            'DATE(pv.createTime) >= :start AND DATE(pv.createTime) <= :end',
+            { start, end },
+          )
+          .groupBy('HOUR(pv.createTime)')
+          .orderBy('hour', 'ASC')
+          .getRawMany<{ hour: string; count: string }>(),
+
+        // 访客详情
+        this.pageViewRepository
+          .createQueryBuilder('pv')
+          .innerJoin(
+            (qb) => {
+              return qb
+                .select('p.sessionId', 'sessionId')
+                .addSelect('MAX(p.createTime)', 'latestCreateTime')
+                .from(PageView, 'p')
+                .where(
+                  'DATE(p.createTime) >= :start AND DATE(p.createTime) <= :end',
+                  { start, end },
+                )
+                .groupBy('p.sessionId');
+            },
+            'latest',
+            'pv.sessionId = latest.sessionId AND pv.createTime = latest.latestCreateTime',
+          )
+          .leftJoin(IpRegion, 'ir', 'pv.ip = ir.ip')
+          .select('pv.ip', 'ip')
+          .addSelect('pv.userAgent', 'userAgent')
+          .addSelect('pv.createTime', 'createTime')
+          .addSelect('ir.country', 'country')
+          .addSelect('ir.province', 'province')
+          .addSelect('ir.city', 'city')
+          .addSelect('ir.isp', 'isp')
+          .orderBy('pv.createTime', 'DESC')
+          .getRawMany<{
+            ip: string;
+            userAgent: string;
+            createTime: string;
+            country: string;
+            province: string;
+            city: string;
+            isp: string;
+          }>(),
+      ]);
 
     // 转换趋势数据格式，匹配前端 LineChart 所需结构
     let trend: {
@@ -341,6 +382,15 @@ export class DashboardService {
         trend,
         topPages: topPages.map((r) => ({ url: r.url, count: Number(r.count) })),
         hourlyDistribution,
+        visitors: visitorsRaw.map((item) => ({
+          ip: item.ip,
+          userAgent: item.userAgent,
+          createTime: item.createTime,
+          country: item.country,
+          province: item.province,
+          city: item.city,
+          isp: item.isp,
+        })),
       },
     };
   }
