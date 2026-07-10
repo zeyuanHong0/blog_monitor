@@ -3,7 +3,7 @@ import { Table, Skeleton } from "antd";
 import dayjs from "dayjs";
 
 import { getTraffic } from "@/api/traffic";
-import type { TrafficData, TopPage } from "@/api/traffic/types";
+import type { TrafficData, TopPage, VisitorsData } from "@/api/traffic/types";
 import { useDateFilterSessionStorage } from "@/hooks/useDateFilterSessionStorage";
 
 import styles from "./index.module.scss";
@@ -46,6 +46,77 @@ const buildTopPagesColumns = (loading: boolean) => [
   },
 ];
 
+const parseUA = (ua?: string) => {
+  const [browser = "未知浏览器", os = "未知系统"] = (ua ?? "").split("|");
+  return { browser, os };
+};
+const visitorsColumns = (loading: boolean) => [
+  {
+    title: "IP",
+    dataIndex: "ip",
+    render: (val: string) =>
+      loading ? (
+        <Skeleton.Input size="small" active block />
+      ) : (
+        <span>{val}</span>
+      ),
+  },
+  {
+    title: "登录地点",
+    dataIndex: "location",
+    render: (_: string, record: VisitorsData) =>
+      loading ? (
+        <Skeleton.Input size="small" active block />
+      ) : (
+        <div>
+          <span>
+            {[record.country, record.province, record.city]
+              .filter(Boolean)
+              .join(" / ") || "未知地点"}
+          </span>
+          <span style={{ display: "block", fontSize: 12, color: "#8c8c8c" }}>
+            {record.isp || "未知网络"}
+          </span>
+        </div>
+      ),
+  },
+  {
+    title: "浏览器",
+    dataIndex: "browser",
+    render: (_: string, record: VisitorsData) => {
+      const { browser } = parseUA(record.userAgent);
+      return loading ? (
+        <Skeleton.Input size="small" active block />
+      ) : (
+        <span>{browser}</span>
+      );
+    },
+  },
+  {
+    title: "操作系统",
+    dataIndex: "os",
+    render: (_: string, record: VisitorsData) => {
+      const { os } = parseUA(record.userAgent);
+      return loading ? (
+        <Skeleton.Input size="small" active block />
+      ) : (
+        <span>{os}</span>
+      );
+    },
+  },
+  {
+    title: "访问时间",
+    dataIndex: "createTime",
+    width: 180,
+    render: (val: string) =>
+      loading ? (
+        <Skeleton.Input size="small" active block />
+      ) : (
+        <span>{dayjs(val).format("YYYY-MM-DD HH:mm:ss")}</span>
+      ),
+  },
+];
+
 const hourlyXData = Array.from({ length: 24 }, (_, i) => `${i}时`);
 
 const DEFAULT_TREND: TrafficData["trend"] = {
@@ -55,11 +126,14 @@ const DEFAULT_TREND: TrafficData["trend"] = {
 };
 
 const Traffic = () => {
-  const { preset, dateRange: searchDateRange, onDateChange } =
-    useDateFilterSessionStorage({
-      storageKey: "traffic",
-      defaultPreset: "today",
-    });
+  const {
+    preset,
+    dateRange: searchDateRange,
+    onDateChange,
+  } = useDateFilterSessionStorage({
+    storageKey: "traffic",
+    defaultPreset: "today",
+  });
   const [trafficData, setTrafficData] = useState<TrafficData | null>(null);
   const isSingleDay = useMemo(
     () =>
@@ -102,6 +176,23 @@ const Traffic = () => {
           <LineChart
             xData={trend.dateList}
             series={[trend.pvData, trend.uvData]}
+          />
+        </div>
+      </div>
+      <div className={styles.chartContainer}>
+        <div className={styles.chartCard}>
+          <div className={styles.chartTitle}>
+            <span className={styles.title}>访问情况</span>
+          </div>
+          <Table
+            rowKey="url"
+            dataSource={
+              trafficData === null ? SKELETON_ROWS : trafficData.visitors
+            }
+            columns={visitorsColumns(trafficData === null)}
+            pagination={{ pageSize: 10 }}
+            size="small"
+            scroll={{ x: "max-content" }}
           />
         </div>
       </div>

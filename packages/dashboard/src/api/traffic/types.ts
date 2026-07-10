@@ -19,10 +19,22 @@ export interface TrendData {
   uvData: TrendSeries;
 }
 
+// 访客数据
+export interface VisitorsData {
+  ip: string;
+  userAgent: string;
+  createTime: string;
+  country: string | null;
+  province: string | null;
+  city: string | null;
+  isp: string | null;
+}
+
 export interface TrafficData {
   trend: TrendData;
   topPages: TopPage[];
   hourlyDistribution: number[];
+  visitors: VisitorsData[];
 }
 
 export interface TrafficResponse extends BaseResponse {
