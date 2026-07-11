@@ -1,6 +1,30 @@
-import { type CSSProperties, useRef, useEffect } from "react";
-import type { EChartsOption } from "echarts";
-import * as echarts from "echarts";
+import React, { type CSSProperties, useRef, useEffect } from "react";
+import * as echarts from "echarts/core";
+import type { ECharts, EChartsOption } from "echarts";
+import { BarChart, LineChart, PieChart, GaugeChart } from "echarts/charts";
+import {
+  GridComponent,
+  TooltipComponent,
+  LegendComponent,
+  TitleComponent,
+  DatasetComponent,
+  GraphicComponent,
+} from "echarts/components";
+import { CanvasRenderer } from "echarts/renderers";
+
+echarts.use([
+  BarChart,
+  LineChart,
+  PieChart,
+  GaugeChart,
+  GridComponent,
+  TooltipComponent,
+  LegendComponent,
+  TitleComponent,
+  DatasetComponent,
+  CanvasRenderer,
+  GraphicComponent,
+]);
 
 interface EChartsWrapperProps {
   option: EChartsOption;
@@ -16,7 +40,7 @@ const EChartsWrapper: React.FC<EChartsWrapperProps> = ({
   theme,
 }) => {
   const chartRef = useRef<HTMLDivElement>(null);
-  const instanceRef = useRef<echarts.ECharts | null>(null);
+  const instanceRef = useRef<ECharts | null>(null);
   const optionRef = useRef(option);
   const isFirstMount = useRef(true);
 

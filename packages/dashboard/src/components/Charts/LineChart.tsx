@@ -1,6 +1,6 @@
 import EChartsWrapper from "./EChartsWrapper";
-import * as echarts from "echarts";
-import type { CSSProperties } from "react";
+import { graphic } from "echarts/core";
+import React, { type CSSProperties } from "react";
 import type { EChartsOption } from "echarts";
 
 const defaultColors = [
@@ -27,7 +27,9 @@ interface LineChartProps {
 
 const isEmpty = (xData: string[], series: Series[]) => {
   if (xData.length === 0) return true;
-  return series.every((s) => s.data.length === 0 || s.data.every((v) => v === 0));
+  return series.every(
+    (s) => s.data.length === 0 || s.data.every((v) => v === 0),
+  );
 };
 
 const emptyGraphic = {
@@ -71,8 +73,7 @@ const LineChart: React.FC<LineChartProps> = ({
       textStyle: {
         color: "#333",
       },
-      extraCssText:
-        "box-shadow: 0 4px 20px rgba(0,0,0,0.08);",
+      extraCssText: "box-shadow: 0 4px 20px rgba(0,0,0,0.08);",
     },
     legend: {
       data: series.map((s) => s.name),
@@ -101,7 +102,12 @@ const LineChart: React.FC<LineChartProps> = ({
       axisTick: { show: false },
       axisLabel: {
         color: "#999",
-        interval: xData.length <= 14 ? 0 : xData.length <= 30 ? 1 : Math.floor(xData.length / 12),
+        interval:
+          xData.length <= 14
+            ? 0
+            : xData.length <= 30
+              ? 1
+              : Math.floor(xData.length / 12),
         rotate: xData.length > 30 ? 30 : 0,
       },
     },
@@ -141,7 +147,7 @@ const LineChart: React.FC<LineChartProps> = ({
           color,
         },
         areaStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          color: new graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: `${color}30` },
             { offset: 1, color: `${color}05` },
           ]),

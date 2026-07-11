@@ -1,14 +1,18 @@
+/* eslint-disable react-refresh/only-export-components */
+import { lazy } from "react";
 import { Navigate } from "react-router-dom";
-import Login from "@/pages/login/index";
-import Layout from "@/pages/layout/index";
-import Overview from "@/pages/overview";
-import Traffic from "@/pages/traffic";
-import Performance from "@/pages/performance";
-import Errors from "@/pages/errors";
-import ErrorDetail from "@/pages/errors/detail";
-import Uptime from "@/pages/uptime";
-import NotFound from "@/pages/notFound";
+
 import AuthGuard from "./AuthGuard";
+
+const Login = lazy(() => import("@/pages/login/index"));
+const Layout = lazy(() => import("@/pages/layout/index"));
+const Overview = lazy(() => import("@/pages/overview"));
+const Traffic = lazy(() => import("@/pages/traffic"));
+const Performance = lazy(() => import("@/pages/performance"));
+const Errors = lazy(() => import("@/pages/errors"));
+const ErrorDetail = lazy(() => import("@/pages/errors/detail"));
+const Uptime = lazy(() => import("@/pages/uptime"));
+const NotFound = lazy(() => import("@/pages/notFound"));
 
 const routes = [
   {

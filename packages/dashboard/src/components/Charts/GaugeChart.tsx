@@ -1,5 +1,5 @@
 import EChartsWrapper from "./EChartsWrapper";
-import type { CSSProperties } from "react";
+import React, { type CSSProperties } from "react";
 import type { EChartsOption } from "echarts";
 
 interface GaugeChartProps {
